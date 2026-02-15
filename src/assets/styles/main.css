@@ -1,0 +1,143 @@
+:root {
+  /* Colors */
+  --color-primary: #009688; /* Medical Teal */
+  --color-primary-dark: #00796b;
+  --color-secondary: #ff9800; /* Accent Orange */
+  --color-bg: #f5f7fa; /* Light Gray Background */
+  --color-surface: #ffffff; /* White Surface */
+  --color-text: #2c3e50; /* Dark Blue Text */
+  --color-text-light: #7f8c8d; /* Muted Text */
+  --color-danger: #e74c3c; /* Red for overdue/danger */
+  --color-success: #2ecc71; /* Green for success */
+  --color-border: #e0e0e0;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* Typography */
+  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-size-base: 16px;
+  --font-size-sm: 14px;
+  --font-size-lg: 18px;
+  --font-size-xl: 24px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+
+  /* UI */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --box-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --header-height: 60px;
+  --nav-height: 60px; /* Bottom nav on mobile */
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--spacing-md);
+  color: var(--color-primary-dark);
+}
+
+a {
+  text-decoration: none;
+  color: var(--color-primary);
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* Utilities */
+.container {
+  padding: var(--spacing-md);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-bottom: calc(var(--nav-height) + var(--spacing-md)); /* Space for bottom nav */
+}
+
+/* Form Elements */
+input, select, textarea {
+  display: block;
+  width: 100%;
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-base);
+  background-color: var(--color-surface);
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(0, 150, 136, 0.2);
+}
+
+/* Button Styles */
+.btn {
+  display: inline-block;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  text-align: center;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.btn-primary:active {
+  background-color: var(--color-primary-dark);
+  transform: translateY(1px);
+}
+
+.btn-secondary {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.btn-block {
+  display: block;
+  width: 100%;
+}
+
+.card {
+  background-color: var(--color-surface);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-md);
+  box-shadow: var(--box-shadow);
+  margin-bottom: var(--spacing-md);
+}
+
+/* Mobile First Adjustments */
+@media (min-width: 768px) {
+  .container {
+    padding-bottom: var(--spacing-md); /* Reset padding for desktop if nav moves */
+  }
+}
