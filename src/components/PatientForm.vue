@@ -43,6 +43,9 @@
 
 <script setup>
 import { reactive, onMounted, computed } from 'vue'
+import { useDialog } from '../composables/useDialog'
+
+const { alert } = useDialog()
 
 const props = defineProps({
   initialData: {

@@ -81,6 +81,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { dbService } from '../services/DatabaseService'
+import { useDialog } from '../composables/useDialog'
+
+const { alert, confirm } = useDialog()
 
 const weekDays = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
@@ -220,9 +223,9 @@ const toggleStatus = async (delivery) => {
   const newStatus = delivery.status === 'pending' ? 'delivered' : 'pending'
   
   if (newStatus === 'delivered') {
-    if (!confirm('¿Confirma que esta entrega ha sido realizada?')) return
+    if (!(await confirm('¿Confirma que esta entrega ha sido realizada?'))) return
   } else {
-    if (!confirm('¿Confirma que esta entrega ha sido cancelada?')) return
+    if (!(await confirm('¿Confirma que esta entrega ha sido cancelada?'))) return
   }
 
   const updated = { ...delivery, status: newStatus }
@@ -240,7 +243,7 @@ const toggleStatus = async (delivery) => {
 }
 
 const deleteDelivery = async (id) => {
-  if (!confirm('¿Estás seguro de que deseas borrar esta entrega?')) return
+  if (!(await confirm('¿Estás seguro de que deseas borrar esta entrega?'))) return
   
   try {
     await dbService.delete('deliveries', id)

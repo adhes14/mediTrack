@@ -38,6 +38,9 @@
 import { ref, onMounted } from 'vue'
 import { dbService } from '../services/DatabaseService'
 import MedicineForm from '../components/MedicineForm.vue'
+import { useDialog } from '../composables/useDialog'
+
+const { alert } = useDialog()
 
 const medicines = ref([])
 const loading = ref(true)

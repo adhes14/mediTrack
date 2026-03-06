@@ -4,11 +4,13 @@
       <router-view></router-view>
     </main>
     <NavBar />
+    <CustomDialog />
   </div>
 </template>
 
 <script setup>
 import NavBar from './components/NavBar.vue'
+import CustomDialog from './components/CustomDialog.vue'
 </script>
 
 <style scoped>
