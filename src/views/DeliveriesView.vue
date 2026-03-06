@@ -49,6 +49,9 @@
 import { reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { dbService } from '../services/DatabaseService'
+import { useDialog } from '../composables/useDialog'
+
+const { alert } = useDialog()
 
 const router = useRouter()
 const patients = ref([])

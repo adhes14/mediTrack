@@ -48,6 +48,9 @@
 import { ref, onMounted } from 'vue'
 import { dbService } from '../services/DatabaseService'
 import PatientForm from '../components/PatientForm.vue'
+import { useDialog } from '../composables/useDialog'
+
+const { alert } = useDialog()
 
 const patients = ref([])
 const loading = ref(true)

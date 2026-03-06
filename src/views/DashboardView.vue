@@ -52,9 +52,14 @@
         >
           <div class="delivery-header">
             <h3>{{ getPatientName(delivery.patientId) }}</h3>
-            <span class="status-badge" :class="delivery.status" @click="toggleStatus(delivery)">
-              {{ delivery.status === 'delivered' ? 'Entregado' : 'Pendiente' }}
-            </span>
+            <div class="header-actions">
+              <span class="status-badge" :class="delivery.status" @click="toggleStatus(delivery)">
+                {{ delivery.status === 'delivered' ? 'Entregado' : 'Pendiente' }}
+              </span>
+              <button v-if="delivery.status === 'pending'" class="delete-btn" @click.stop="deleteDelivery(delivery.id)" title="Borrar entrega">
+                🗑️
+              </button>
+            </div>
           </div>
           <p class="address">{{ getPatientAddress(delivery.patientId) }}</p>
           <div class="medicines-summary">
@@ -76,6 +81,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { dbService } from '../services/DatabaseService'
+import { useDialog } from '../composables/useDialog'
+
+const { alert, confirm } = useDialog()
 
 const weekDays = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
@@ -213,6 +221,13 @@ const isOverdue = (delivery) => {
 
 const toggleStatus = async (delivery) => {
   const newStatus = delivery.status === 'pending' ? 'delivered' : 'pending'
+  
+  if (newStatus === 'delivered') {
+    if (!(await confirm('¿Confirma que esta entrega ha sido realizada?'))) return
+  } else {
+    if (!(await confirm('¿Confirma que esta entrega ha sido cancelada?'))) return
+  }
+
   const updated = { ...delivery, status: newStatus }
   
   try {
@@ -224,6 +239,17 @@ const toggleStatus = async (delivery) => {
     }
   } catch (err) {
     alert('Error actualizando estado: ' + err.message)
+  }
+}
+
+const deleteDelivery = async (id) => {
+  if (!(await confirm('¿Estás seguro de que deseas borrar esta entrega?'))) return
+  
+  try {
+    await dbService.delete('deliveries', id)
+    deliveries.value = deliveries.value.filter(d => d.id !== id)
+  } catch (err) {
+    alert('Error al borrar la entrega: ' + err.message)
   }
 }
 </script>
@@ -335,6 +361,30 @@ const toggleStatus = async (delivery) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: var(--spacing-xs);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 4px;
+  opacity: 0.6;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
 }
 
 .address {
