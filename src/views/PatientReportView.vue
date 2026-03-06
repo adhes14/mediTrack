@@ -6,13 +6,32 @@
 
     <!-- Patient Selection -->
     <div class="card patient-selector">
-      <label for="patient-select" class="form-label">Seleccionar Paciente:</label>
-      <select id="patient-select" class="form-input" v-model="selectedPatientId" @change="generateReport">
-        <option value="" disabled>Elige un paciente...</option>
-        <option v-for="patient in patients" :key="patient.id" :value="patient.id">
-          {{ patient.name }}
-        </option>
-      </select>
+      <label for="patient-search" class="form-label">Buscar Paciente:</label>
+      <div class="autocomplete-wrapper">
+        <input 
+          id="patient-search" 
+          type="text" 
+          class="form-input" 
+          v-model="searchQuery" 
+          @focus="showDropdown = true"
+          @blur="hideDropdown"
+          placeholder="Escribe para buscar un paciente..."
+          autocomplete="off"
+        >
+        <ul v-if="showDropdown && filteredPatients.length > 0" class="autocomplete-list">
+          <li 
+            v-for="patient in filteredPatients" 
+            :key="patient.id" 
+            @mousedown.prevent="selectPatient(patient)"
+            class="autocomplete-item"
+          >
+            {{ patient.name }}
+          </li>
+        </ul>
+        <div v-else-if="showDropdown && searchQuery && filteredPatients.length === 0" class="autocomplete-list empty">
+          No se encontraron pacientes.
+        </div>
+      </div>
     </div>
 
     <!-- Loading State -->
@@ -85,6 +104,9 @@ const medicines = ref([])
 const selectedPatientId = ref('')
 const loading = ref(true)
 
+const searchQuery = ref('')
+const showDropdown = ref(false)
+
 onMounted(async () => {
   await loadData()
 })
@@ -108,8 +130,20 @@ const loadData = async () => {
   }
 }
 
-const generateReport = () => {
-  // Triggered when a patient is selected. Could be used for specific fetching if needed.
+const filteredPatients = computed(() => {
+  if (!searchQuery.value) return patients.value
+  const query = searchQuery.value.toLowerCase()
+  return patients.value.filter(p => p.name.toLowerCase().includes(query))
+})
+
+const selectPatient = (patient) => {
+  selectedPatientId.value = patient.id
+  searchQuery.value = patient.name
+  showDropdown.value = false
+}
+
+const hideDropdown = () => {
+  showDropdown.value = false
 }
 
 // Computed properties for the report
@@ -151,6 +185,51 @@ const formatDate = (dateString) => {
 <style scoped>
 .patient-selector {
   margin-bottom: var(--spacing-lg);
+  position: relative;
+  z-index: 10;
+}
+
+.autocomplete-wrapper {
+  position: relative;
+}
+
+.autocomplete-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 20;
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0 0;
+  box-shadow: var(--box-shadow-md);
+}
+
+.autocomplete-item {
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-md);
+  color: var(--color-text);
+}
+
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.autocomplete-item:hover {
+  background-color: rgba(0, 150, 136, 0.05);
+}
+
+.autocomplete-list.empty {
+  padding: var(--spacing-md);
+  color: var(--color-text-light);
+  text-align: center;
 }
 
 .report-content {
