@@ -10,7 +10,11 @@
     </router-link>
     <router-link to="/medicines" class="nav-item" active-class="active">
       <span class="icon">💊</span>
-      <span class="label">Fármacos</span>
+      <span class="label">Fármac.</span>
+    </router-link>
+    <router-link to="/reports" class="nav-item" active-class="active">
+      <span class="icon">📊</span>
+      <span class="label">Reportes</span>
     </router-link>
   </nav>
 </template>
