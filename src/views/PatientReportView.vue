@@ -24,8 +24,9 @@
             :key="patient.id" 
             @mousedown.prevent="selectPatient(patient)"
             class="autocomplete-item"
+            :title="patient.ci ? 'CI: ' + patient.ci : ''"
           >
-            {{ patient.name }}
+            {{ patient.name }} <span v-if="patient.ci" class="ci-hint">(CI: {{ patient.ci }})</span>
           </li>
         </ul>
         <div v-else-if="showDropdown && searchQuery && filteredPatients.length === 0" class="autocomplete-list empty">
@@ -133,7 +134,10 @@ const loadData = async () => {
 const filteredPatients = computed(() => {
   if (!searchQuery.value) return patients.value
   const query = searchQuery.value.toLowerCase()
-  return patients.value.filter(p => p.name.toLowerCase().includes(query))
+  return patients.value.filter(p => 
+    p.name.toLowerCase().includes(query) || 
+    (p.ci && p.ci.toLowerCase().includes(query))
+  )
 })
 
 const selectPatient = (patient) => {

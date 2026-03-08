@@ -1,113 +1,76 @@
-const DB_NAME = 'MediaTrackDB';
-const DB_VERSION = 1;
+import { db } from './firebase'
+import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where
+} from 'firebase/firestore'
 
 export class DatabaseService {
-    constructor() {
-        this.db = null;
+  /**
+   * Get all documents from a collection
+   */
+  async getAll(collectionName) {
+    const snapshot = await getDocs(collection(db, collectionName))
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  }
+
+  /**
+   * Get a single document by ID
+   */
+  async getById(collectionName, id) {
+    const docRef = doc(db, collectionName, String(id))
+    const docSnap = await getDoc(docRef)
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() }
     }
+    return null
+  }
 
-    async connect() {
-        if (this.db) return this.db;
+  /**
+   * Add a new document to a collection
+   * Returns the new document ID
+   */
+  async add(collectionName, data) {
+    const cleanData = { ...data }
+    delete cleanData.id // Don't store the id field inside the document
+    const docRef = await addDoc(collection(db, collectionName), cleanData)
+    return docRef.id
+  }
 
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
+  /**
+   * Update an existing document
+   * Data must include an 'id' field
+   */
+  async update(collectionName, data) {
+    const { id, ...updateData } = data
+    const docRef = doc(db, collectionName, String(id))
+    await updateDoc(docRef, updateData)
+    return id
+  }
 
-            request.onerror = (event) => {
-                console.error('Database error:', event.target.error);
-                reject(event.target.error);
-            };
+  /**
+   * Delete a document by ID
+   */
+  async delete(collectionName, id) {
+    const docRef = doc(db, collectionName, String(id))
+    await deleteDoc(docRef)
+  }
 
-            request.onsuccess = (event) => {
-                this.db = event.target.result;
-                resolve(this.db);
-            };
-
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-
-                // Patients Store
-                if (!db.objectStoreNames.contains('patients')) {
-                    db.createObjectStore('patients', { keyPath: 'id', autoIncrement: true });
-                }
-
-                // Medicines Store
-                if (!db.objectStoreNames.contains('medicines')) {
-                    db.createObjectStore('medicines', { keyPath: 'id', autoIncrement: true });
-                }
-
-                // Deliveries Store
-                if (!db.objectStoreNames.contains('deliveries')) {
-                    const deliveryStore = db.createObjectStore('deliveries', { keyPath: 'id', autoIncrement: true });
-                    deliveryStore.createIndex('patientId', 'patientId', { unique: false });
-                    deliveryStore.createIndex('date', 'scheduledDate', { unique: false });
-                }
-            };
-        });
-    }
-
-    async getAll(storeName) {
-        await this.connect();
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([storeName], 'readonly');
-            const store = transaction.objectStore(storeName);
-            const request = store.getAll();
-
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
-    }
-
-    async getById(storeName, id) {
-        await this.connect();
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([storeName], 'readonly');
-            const store = transaction.objectStore(storeName);
-            const request = store.get(id);
-
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
-    }
-
-    async add(storeName, data) {
-        await this.connect();
-        // Clonar datos para eliminar Proxies de Vue que causan errores en IndexedDB
-        const cleanData = JSON.parse(JSON.stringify(data));
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([storeName], 'readwrite');
-            const store = transaction.objectStore(storeName);
-            const request = store.add(cleanData);
-
-            request.onsuccess = () => resolve(request.result); // Returns the new ID
-            request.onerror = () => reject(request.error);
-        });
-    }
-
-    async update(storeName, data) {
-        await this.connect();
-        // Clonar datos para eliminar Proxies de Vue que causan errores en IndexedDB
-        const cleanData = JSON.parse(JSON.stringify(data));
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([storeName], 'readwrite');
-            const store = transaction.objectStore(storeName);
-            const request = store.put(cleanData);
-
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
-    }
-
-    async delete(storeName, id) {
-        await this.connect();
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction([storeName], 'readwrite');
-            const store = transaction.objectStore(storeName);
-            const request = store.delete(id);
-
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error);
-        });
-    }
+  /**
+   * Query documents by a specific field value
+   * Useful for checking CI uniqueness
+   */
+  async getByField(collectionName, field, value) {
+    const q = query(collection(db, collectionName), where(field, '==', value))
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  }
 }
 
-export const dbService = new DatabaseService();
+export const dbService = new DatabaseService()

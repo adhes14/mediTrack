@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to get the user's role from the users collection
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    // Helper: checks if user's role index is >= the given role index
+    function hasRole(minRole) {
+      let order = ['read_only', 'assistant', 'manager', 'admin'];
+      return order.indexOf(getUserRole()) >= order.indexOf(minRole);
+    }
+
+    // Users collection - only admins can write other user docs
+    match /users/{userId} {
+      // Any authenticated user can read all user profiles
+      allow read: if request.auth != null;
+      // User can create their own document (first login)
+      allow create: if request.auth != null && request.auth.uid == userId;
+      // Admin can update any user; a user cannot change their own role
+      allow update: if request.auth != null && (
+        getUserRole() == 'admin' ||
+        (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
+      );
+      // Only admins can delete users from the system
+      allow delete: if request.auth != null && getUserRole() == 'admin';
+    }
+
+    // Patients collection
+    match /patients/{patientId} {
+      allow read: if request.auth != null;
+      // assistant, manager, admin can create
+      allow create: if request.auth != null && hasRole('assistant');
+      // manager and admin can update/delete
+      allow update, delete: if request.auth != null && hasRole('manager');
+    }
+
+    // Medicines collection
+    match /medicines/{medicineId} {
+      allow read: if request.auth != null;
+      // assistant, manager, admin can create
+      allow create: if request.auth != null && hasRole('assistant');
+      // manager and admin can update/delete
+      allow update, delete: if request.auth != null && hasRole('manager');
+    }
+
+    // Deliveries collection
+    match /deliveries/{deliveryId} {
+      allow read: if request.auth != null;
+      // assistant, manager, admin can create/update/delete
+      allow create, update, delete: if request.auth != null && hasRole('assistant');
+    }
+  }
+}
