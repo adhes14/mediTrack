@@ -15,6 +15,7 @@
       <div v-for="patient in patients" :key="patient.id" class="card patient-item" @click="editPatient(patient)">
         <div class="patient-info">
           <h3>{{ patient.name }}</h3>
+          <p class="detail ci-badge" v-if="patient.ci">🪪 CI: {{ patient.ci }}</p>
           <p class="detail">📱 {{ patient.phone }}</p>
           <p class="detail">🏠 {{ patient.address }}</p>
           <p class="detail text-muted" v-if="patient.illness">{{ patient.illness }}</p>
@@ -174,6 +175,11 @@ const handleSave = async (formData) => {
 
 .btn-map:hover {
   background-color: rgba(0, 150, 136, 0.1);
+}
+
+.ci-badge {
+  font-weight: 600;
+  color: var(--color-primary, #009688);
 }
 </style>
 

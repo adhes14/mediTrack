@@ -3,6 +3,10 @@
     <div class="card patient-form-card">
       <h2>{{ isEditing ? 'Editar Paciente' : 'Nuevo Paciente' }}</h2>
       <form @submit.prevent="handleSubmit">
+        <label>CI (Cédula de Identidad)</label>
+        <input v-model="form.ci" required placeholder="Ej: 12345678" />
+        <p v-if="ciError" class="error-text">{{ ciError }}</p>
+
         <label>Nombre Completo</label>
         <input v-model="form.name" required placeholder="Ej: Juan Pérez" />
 
@@ -42,8 +46,9 @@
 </template>
 
 <script setup>
-import { reactive, onMounted, computed } from 'vue'
+import { reactive, ref, onMounted, computed } from 'vue'
 import { useDialog } from '../composables/useDialog'
+import { dbService } from '../services/DatabaseService'
 
 const { alert } = useDialog()
 
@@ -58,7 +63,10 @@ const emit = defineEmits(['save', 'cancel'])
 
 const isEditing = computed(() => !!props.initialData.id)
 
+const ciError = ref('')
+
 const form = reactive({
+  ci: '',
   name: '',
   phone: '',
   address: '',
@@ -74,8 +82,29 @@ onMounted(() => {
   }
 })
 
-const handleSubmit = () => {
-  emit('save', { ...form })
+const handleSubmit = async () => {
+  ciError.value = ''
+  
+  // Validate CI uniqueness
+  const ciTrimmed = form.ci.trim()
+  if (!ciTrimmed) {
+    ciError.value = 'El CI es obligatorio'
+    return
+  }
+  
+  try {
+    const existing = await dbService.getByField('patients', 'ci', ciTrimmed)
+    // If editing, exclude current patient from uniqueness check
+    const isDuplicate = existing.some(p => p.id !== form.id)
+    if (isDuplicate) {
+      ciError.value = 'Ya existe un paciente con este CI'
+      return
+    }
+  } catch (err) {
+    console.error('Error validating CI:', err)
+  }
+  
+  emit('save', { ...form, ci: ciTrimmed })
 }
 
 const getLocation = () => {
@@ -140,5 +169,12 @@ const getLocation = () => {
 .btn-sm {
   padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--font-size-sm);
+}
+
+.error-text {
+  color: var(--color-danger, #e74c3c);
+  font-size: var(--font-size-sm, 0.85rem);
+  margin: 4px 0 8px 0;
+  font-weight: 500;
 }
 </style>
