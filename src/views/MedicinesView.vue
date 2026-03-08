@@ -12,7 +12,7 @@
     </div>
 
     <div v-else class="medicine-list">
-      <div v-for="medicine in medicines" :key="medicine.id" class="card medicine-item" @click="editMedicine(medicine)">
+      <div v-for="medicine in medicines" :key="medicine.id" class="card medicine-item clickable" @click="editMedicine(medicine)">
         <div class="medicine-info">
           <h3>{{ medicine.name }}</h3>
           <p class="detail text-muted">{{ medicine.unit }}</p>
@@ -28,6 +28,7 @@
     <MedicineForm 
       v-if="showForm" 
       :initialData="currentMedicine" 
+      :readOnly="isAssistant && !!currentMedicine.id"
       @save="handleSave" 
       @cancel="closeForm" 
     />
@@ -35,12 +36,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { dbService } from '../services/DatabaseService'
 import MedicineForm from '../components/MedicineForm.vue'
 import { useDialog } from '../composables/useDialog'
+import { useAuth } from '../composables/useAuth'
 
 const { alert } = useDialog()
+const { isAssistant } = useAuth()
+
+const canEdit = computed(() => !isAssistant.value)
 
 const medicines = ref([])
 const loading = ref(true)
@@ -126,11 +131,14 @@ const handleSave = async (formData) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: var(--spacing-md);
-  cursor: pointer;
   transition: background-color 0.2s;
 }
 
-.medicine-item:active {
+.medicine-item.clickable {
+  cursor: pointer;
+}
+
+.medicine-item.clickable:active {
   background-color: #f0f0f0;
 }
 

@@ -4,11 +4,11 @@
       <span class="icon">📅</span>
       <span class="label">Agenda</span>
     </router-link>
-    <router-link to="/patients" class="nav-item" active-class="active">
+    <router-link v-if="!isReadOnly" to="/patients" class="nav-item" active-class="active">
       <span class="icon">👥</span>
       <span class="label">Pacientes</span>
     </router-link>
-    <router-link to="/medicines" class="nav-item" active-class="active">
+    <router-link v-if="!isReadOnly" to="/medicines" class="nav-item" active-class="active">
       <span class="icon">💊</span>
       <span class="label">Fármac.</span>
     </router-link>
@@ -16,8 +16,29 @@
       <span class="icon">📊</span>
       <span class="label">Reportes</span>
     </router-link>
+    <router-link v-if="isAdmin" to="/users" class="nav-item" active-class="active">
+      <span class="icon">⚙️</span>
+      <span class="label">Admin</span>
+    </router-link>
+    <button @click="handleSignOut" class="nav-item logout-btn">
+      <span class="icon">🚪</span>
+      <span class="label">Salir</span>
+    </button>
   </nav>
 </template>
+
+<script setup>
+import { useRouter } from 'vue-router'
+import { useAuth } from '../composables/useAuth'
+
+const router = useRouter()
+const { isReadOnly, isAdmin, signOut } = useAuth()
+
+const handleSignOut = async () => {
+  await signOut()
+  router.push('/login')
+}
+</script>
 
 <style scoped>
 .navbar {
@@ -53,5 +74,15 @@
 
 .nav-item.active {
   color: var(--color-primary);
+}
+
+.logout-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  background-color: var(--color-bg);
 }
 </style>

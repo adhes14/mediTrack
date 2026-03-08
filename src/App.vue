@@ -3,7 +3,7 @@
     <main class="main-content">
       <router-view></router-view>
     </main>
-    <NavBar />
+    <NavBar v-if="isAuthenticated" />
     <CustomDialog />
   </div>
 </template>
@@ -11,6 +11,9 @@
 <script setup>
 import NavBar from './components/NavBar.vue'
 import CustomDialog from './components/CustomDialog.vue'
+import { useAuth } from './composables/useAuth'
+
+const { isAuthenticated } = useAuth()
 </script>
 
 <style scoped>

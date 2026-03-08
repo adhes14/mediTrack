@@ -36,7 +36,7 @@
     <div class="daily-deliveries">
       <div class="section-header">
         <h2>Entregas: {{ formatDate(selectedDate) }}</h2>
-        <button class="btn btn-primary btn-sm" @click="$router.push('/deliveries/new')">+ Programar</button>
+        <button v-if="!isReadOnly" class="btn btn-primary btn-sm" @click="$router.push('/deliveries/new')">+ Programar</button>
       </div>
 
       <div v-if="selectedDayDeliveries.length === 0" class="card empty-state">
@@ -53,10 +53,10 @@
           <div class="delivery-header">
             <h3>{{ getPatientName(delivery.patientId) }}</h3>
             <div class="header-actions">
-              <span class="status-badge" :class="delivery.status" @click="toggleStatus(delivery)">
+              <span class="status-badge" :class="[delivery.status, { 'readonly': isReadOnly }]" @click="toggleStatus(delivery)">
                 {{ delivery.status === 'delivered' ? 'Entregado' : 'Pendiente' }}
               </span>
-              <button v-if="delivery.status === 'pending'" class="delete-btn" @click.stop="deleteDelivery(delivery.id)" title="Borrar entrega">
+              <button v-if="delivery.status === 'pending' && !isReadOnly" class="delete-btn" @click.stop="deleteDelivery(delivery.id)" title="Borrar entrega">
                 🗑️
               </button>
             </div>
@@ -82,8 +82,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { dbService } from '../services/DatabaseService'
 import { useDialog } from '../composables/useDialog'
+import { useAuth } from '../composables/useAuth'
 
 const { alert, confirm } = useDialog()
+const { isReadOnly } = useAuth()
 
 const weekDays = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
@@ -220,6 +222,8 @@ const isOverdue = (delivery) => {
 }
 
 const toggleStatus = async (delivery) => {
+  if (isReadOnly.value) return;
+
   const newStatus = delivery.status === 'pending' ? 'delivered' : 'pending'
   
   if (newStatus === 'delivered') {
@@ -400,6 +404,10 @@ const deleteDelivery = async (id) => {
   font-weight: bold;
   text-transform: uppercase;
   cursor: pointer;
+}
+
+.status-badge.readonly {
+  cursor: default;
 }
 
 .status-badge.pending {

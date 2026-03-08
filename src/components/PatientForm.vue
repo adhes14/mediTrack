@@ -1,44 +1,44 @@
 <template>
   <div class="patient-form-overlay">
     <div class="card patient-form-card">
-      <h2>{{ isEditing ? 'Editar Paciente' : 'Nuevo Paciente' }}</h2>
+      <h2>{{ isEditing ? (readOnly ? 'Detalles del Paciente' : 'Editar Paciente') : 'Nuevo Paciente' }}</h2>
       <form @submit.prevent="handleSubmit">
         <label>CI (Cédula de Identidad)</label>
-        <input v-model="form.ci" required placeholder="Ej: 12345678" />
+        <input v-model="form.ci" required :disabled="readOnly" placeholder="Ej: 12345678" />
         <p v-if="ciError" class="error-text">{{ ciError }}</p>
 
         <label>Nombre Completo</label>
-        <input v-model="form.name" required placeholder="Ej: Juan Pérez" />
+        <input v-model="form.name" required :disabled="readOnly" placeholder="Ej: Juan Pérez" />
 
         <label>Teléfono</label>
-        <input v-model="form.phone" type="tel" required placeholder="Ej: +591 70000000" />
+        <input v-model="form.phone" type="tel" required :disabled="readOnly" placeholder="Ej: +591 70000000" />
 
         <label>Dirección</label>
-        <textarea v-model="form.address" required placeholder="Dirección descriptiva"></textarea>
+        <textarea v-model="form.address" required :disabled="readOnly" placeholder="Dirección descriptiva"></textarea>
 
         <div class="row">
           <div class="col">
             <label>Latitud</label>
-            <input v-model.number="form.lat" type="number" step="any" placeholder="-17.000" />
+            <input v-model.number="form.lat" type="number" step="any" :disabled="readOnly" placeholder="-17.000" />
           </div>
           <div class="col">
             <label>Longitud</label>
-            <input v-model.number="form.lon" type="number" step="any" placeholder="-66.000" />
+            <input v-model.number="form.lon" type="number" step="any" :disabled="readOnly" placeholder="-66.000" />
           </div>
         </div>
-        <button type="button" class="btn btn-secondary btn-sm mb-2" @click="getLocation">
+        <button v-if="!readOnly" type="button" class="btn btn-secondary btn-sm mb-2" @click="getLocation">
           📍 Obtener Ubicación Actual
         </button>
 
         <label>Enfermedad / Diagnóstico</label>
-        <input v-model="form.illness" placeholder="Ej: Diabetes Tipo 2" />
+        <input v-model="form.illness" :disabled="readOnly" placeholder="Ej: Diabetes Tipo 2" />
 
         <label>Tratamiento / Notas</label>
-        <textarea v-model="form.treatment_info" placeholder="Descripción del tratamiento..."></textarea>
+        <textarea v-model="form.treatment_info" :disabled="readOnly" placeholder="Descripción del tratamiento..."></textarea>
 
         <div class="actions">
-          <button type="button" class="btn btn-secondary" @click="$emit('cancel')">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Guardar</button>
+          <button type="button" class="btn btn-secondary" @click="$emit('cancel')">{{ readOnly ? 'Cerrar' : 'Cancelar' }}</button>
+          <button v-if="!readOnly" type="submit" class="btn btn-primary">Guardar</button>
         </div>
       </form>
     </div>
@@ -56,6 +56,10 @@ const props = defineProps({
   initialData: {
     type: Object,
     default: () => ({})
+  },
+  readOnly: {
+    type: Boolean,
+    default: false
   }
 })
 

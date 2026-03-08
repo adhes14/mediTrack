@@ -1,13 +1,13 @@
 <template>
   <div class="medicine-form-overlay">
     <div class="card medicine-form-card">
-      <h2>{{ isEditing ? 'Editar Medicamento' : 'Nuevo Medicamento' }}</h2>
+      <h2>{{ isEditing ? (readOnly ? 'Detalles del Medicamento' : 'Editar Medicamento') : 'Nuevo Medicamento' }}</h2>
       <form @submit.prevent="handleSubmit">
         <label>Nombre del Medicamento</label>
-        <input v-model="form.name" required placeholder="Ej: Paracetamol" />
+        <input v-model="form.name" required :disabled="readOnly" placeholder="Ej: Paracetamol" />
 
         <label>Unidad</label>
-        <select v-model="form.unit" required>
+        <select v-model="form.unit" required :disabled="readOnly">
           <option value="" disabled>Seleccione unidad</option>
           <option value="mg">mg</option>
           <option value="ml">ml</option>
@@ -18,8 +18,8 @@
         </select>
 
         <div class="actions">
-          <button type="button" class="btn btn-secondary" @click="$emit('cancel')">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Guardar</button>
+          <button type="button" class="btn btn-secondary" @click="$emit('cancel')">{{ readOnly ? 'Cerrar' : 'Cancelar' }}</button>
+          <button v-if="!readOnly" type="submit" class="btn btn-primary">Guardar</button>
         </div>
       </form>
     </div>
@@ -33,6 +33,10 @@ const props = defineProps({
   initialData: {
     type: Object,
     default: () => ({})
+  },
+  readOnly: {
+    type: Boolean,
+    default: false
   }
 })
 
