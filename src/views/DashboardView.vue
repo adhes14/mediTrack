@@ -36,7 +36,10 @@
     <div class="daily-deliveries">
       <div class="section-header">
         <h2>Entregas: {{ formatDate(selectedDate) }}</h2>
-        <button v-if="!isReadOnly" class="btn btn-primary btn-sm" @click="$router.push('/deliveries/new')">+ Programar</button>
+        <div class="actions-group">
+          <button v-if="!isReadOnly" class="btn btn-primary btn-sm" @click="$router.push('/deliveries/new')">+ Programar</button>
+          <button v-if="!isReadOnly" class="btn btn-secondary btn-sm" @click="$router.push('/batch-deliveries')">+ Lote</button>
+        </div>
       </div>
 
       <div v-if="selectedDayDeliveries.length === 0" class="card empty-state">
@@ -56,6 +59,9 @@
               <span class="status-badge" :class="[delivery.status, { 'readonly': isReadOnly }]" @click="toggleStatus(delivery)">
                 {{ delivery.status === 'delivered' ? 'Entregado' : 'Pendiente' }}
               </span>
+              <button v-if="delivery.status === 'pending' && !isReadOnly" class="edit-btn" @click.stop="$router.push(`/deliveries/edit/${delivery.id}`)" title="Editar entrega">
+                ✏️
+              </button>
               <button v-if="delivery.status === 'pending' && !isReadOnly" class="delete-btn" @click.stop="deleteDelivery(delivery.id)" title="Borrar entrega">
                 🗑️
               </button>
@@ -210,7 +216,11 @@ const selectedDayDeliveries = computed(() => {
 
 const getPatientName = (id) => patients.value.find(p => p.id === id)?.name || 'Desconocido'
 const getPatientAddress = (id) => patients.value.find(p => p.id === id)?.address || ''
-const getMedicineName = (id) => medicines.value.find(m => m.id === id)?.name || ''
+const getMedicineName = (id) => {
+  const medicine = medicines.value.find(m => m.id === id)
+  if (!medicine) return ''
+  return medicine.unit ? `${medicine.name} (${medicine.unit})` : medicine.name
+}
 
 const isOverdue = (delivery) => {
   if (delivery.status === 'delivered') return false
@@ -351,6 +361,11 @@ const deleteDelivery = async (id) => {
   margin-bottom: var(--spacing-md);
 }
 
+.actions-group {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
 .delivery-item {
   border-left: 4px solid var(--color-border);
 }
@@ -373,7 +388,7 @@ const deleteDelivery = async (id) => {
   gap: var(--spacing-sm);
 }
 
-.delete-btn {
+.edit-btn, .delete-btn {
   background: none;
   border: none;
   cursor: pointer;
@@ -386,9 +401,13 @@ const deleteDelivery = async (id) => {
   justify-content: center;
 }
 
-.delete-btn:hover {
+.edit-btn:hover, .delete-btn:hover {
   opacity: 1;
   transform: scale(1.1);
+}
+
+.edit-btn:hover {
+  color: var(--color-primary);
 }
 
 .address {

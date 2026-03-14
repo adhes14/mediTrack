@@ -3,16 +3,22 @@
     <div class="header">
       <h1>Pacientes</h1>
     </div>
-    
+
+    <div class="tabs">
+      <button :class="['tab-btn', { active: currentTab === 'active' }]" @click="currentTab = 'active'">Activos</button>
+      <button :class="['tab-btn', { active: currentTab === 'inactive' }]" @click="currentTab = 'inactive'">Inactivos</button>
+    </div>
+
     <div v-if="loading" class="text-center">Cargando...</div>
 
-    <div v-else-if="patients.length === 0" class="card empty-state">
-      <p>No hay pacientes registrados.</p>
-      <p class="text-muted">Añade uno nuevo usando el botón +.</p>
+    <div v-else-if="filteredPatients.length === 0" class="card empty-state">
+      <p>No hay pacientes en esta categoría.</p>
+      <p v-if="currentTab === 'active'" class="text-muted">Añade uno nuevo usando el botón +.</p>
     </div>
 
     <div v-else class="patient-list">
-      <div v-for="patient in patients" :key="patient.id" class="card patient-item clickable" @click="editPatient(patient)">
+      <div v-for="patient in filteredPatients" :key="patient.id" class="card patient-item clickable"
+        @click="editPatient(patient)">
         <div class="patient-info">
           <h3>{{ patient.name }}</h3>
           <p class="detail ci-badge" v-if="patient.ci">🪪 CI: {{ patient.ci }}</p>
@@ -21,13 +27,12 @@
           <p class="detail text-muted" v-if="patient.illness">{{ patient.illness }}</p>
         </div>
         <div class="patient-actions" @click.stop>
-            <a v-if="patient.lat && patient.lon" 
-               :href="`https://www.google.com/maps/search/?api=1&query=${patient.lat},${patient.lon}`" 
-               target="_blank" 
-               class="btn btn-map">
-              🗺️ Mapa
-            </a>
-            <!-- Delete button could be here, but maybe inside edit form or separate action -->
+          <a v-if="patient.lat && patient.lon"
+            :href="`https://www.google.com/maps/search/?api=1&query=${patient.lat},${patient.lon}`" target="_blank"
+            class="btn btn-map">
+            🗺️ Mapa
+          </a>
+          <!-- Delete button could be here, but maybe inside edit form or separate action -->
         </div>
       </div>
     </div>
@@ -36,13 +41,8 @@
     <button class="fab" @click="showAddForm">+</button>
 
     <!-- Form Modal -->
-    <PatientForm 
-      v-if="showForm" 
-      :initialData="currentPatient" 
-      :readOnly="isAssistant && !!currentPatient.id"
-      @save="handleSave" 
-      @cancel="closeForm" 
-    />
+    <PatientForm v-if="showForm" :initialData="currentPatient" :readOnly="isAssistant && !!currentPatient.id"
+      :saving="saving" @save="handleSave" @cancel="closeForm" />
   </div>
 </template>
 
@@ -62,6 +62,18 @@ const patients = ref([])
 const loading = ref(true)
 const showForm = ref(false)
 const currentPatient = ref({})
+const saving = ref(false)
+const currentTab = ref('active')
+
+const filteredPatients = computed(() => {
+  return patients.value.filter(p => {
+    if (currentTab.value === 'active') {
+      return p.status !== 'inactive'
+    } else {
+      return p.status === 'inactive'
+    }
+  })
+})
 
 const loadPatients = async () => {
   loading.value = true
@@ -92,6 +104,7 @@ const closeForm = () => {
 }
 
 const handleSave = async (formData) => {
+  saving.value = true
   try {
     if (formData.id) {
       await dbService.update('patients', formData)
@@ -102,6 +115,8 @@ const handleSave = async (formData) => {
     closeForm()
   } catch (err) {
     alert('Error guardando paciente: ' + err.message)
+  } finally {
+    saving.value = false
   }
 }
 </script>
@@ -125,6 +140,30 @@ const handleSave = async (formData) => {
   cursor: pointer;
   transition: transform 0.2s;
   z-index: 100;
+}
+
+.tabs {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: var(--spacing-sm);
+  background-color: var(--color-bg-light, #f8f9fa);
+  border: 1px solid var(--color-border, #eee);
+  border-radius: var(--border-radius-sm);
+  font-weight: 600;
+  color: var(--color-text-light);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-btn.active {
+  background-color: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
 }
 
 .fab:active {
@@ -190,4 +229,3 @@ const handleSave = async (formData) => {
   color: var(--color-primary, #009688);
 }
 </style>
-

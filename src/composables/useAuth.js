@@ -14,6 +14,7 @@ export function useAuth() {
   const isManager = computed(() => userRole.value === 'manager')
   const isAssistant = computed(() => userRole.value === 'assistant')
   const isReadOnly = computed(() => userRole.value === 'read_only')
+  const isProfileComplete = computed(() => !!(currentUser.value?.displayName && currentUser.value?.phone))
 
   /**
    * Initialize auth state listener
@@ -33,6 +34,24 @@ export function useAuth() {
     return await authService.signInWithGoogle()
   }
 
+  const registerEmail = async (email, password, displayName, phone) => {
+    return await authService.registerWithEmail(email, password, displayName, phone)
+  }
+
+  const signInEmail = async (email, password) => {
+    return await authService.signInWithEmail(email, password)
+  }
+
+  const resetPassword = async (email) => {
+    return await authService.sendPasswordReset(email)
+  }
+
+  const updateProfile = async (displayName, phone) => {
+    if (!currentUser.value) return
+    await authService.updateProfileData(currentUser.value.uid, { displayName, phone })
+    currentUser.value = { ...currentUser.value, displayName, phone }
+  }
+
   const signOut = async () => {
     await authService.signOutUser()
     currentUser.value = null
@@ -42,6 +61,7 @@ export function useAuth() {
     currentUser,
     userRole,
     isAuthenticated,
+    isProfileComplete,
     isAuthReady,
     isAdmin,
     isManager,
@@ -49,6 +69,10 @@ export function useAuth() {
     isReadOnly,
     initAuth,
     signIn,
+    registerEmail,
+    signInEmail,
+    resetPassword,
+    updateProfile,
     signOut
   }
 }
