@@ -4,70 +4,55 @@
       <h2>{{ isEditing ? (readOnly ? 'Detalles del Paciente' : 'Editar Paciente') : 'Nuevo Paciente' }}</h2>
       <form @submit.prevent="handleSubmit">
         <label>CI (Cédula de Identidad)</label>
-        <input 
-          v-model="form.ci" 
-          :disabled="readOnly || saving" 
-          placeholder="Ej: 12345678" 
-          :class="{ 'has-error': errors.ci || ciError }"
-        />
+        <input v-model="form.ci" :disabled="readOnly || saving" placeholder="Ej: 12345678"
+          :class="{ 'has-error': errors.ci || ciError }" />
         <p v-if="ciError || errors.ci" class="error-text">{{ ciError || errors.ci }}</p>
 
         <label>Nombre Completo</label>
-        <input 
-          v-model="form.name" 
-          :disabled="readOnly || saving" 
-          placeholder="Ej: Juan Pérez" 
-          :class="{ 'has-error': errors.name }"
-        />
+        <input v-model="form.name" :disabled="readOnly || saving" placeholder="Ej: Juan Pérez"
+          :class="{ 'has-error': errors.name }" />
         <p v-if="errors.name" class="error-text">{{ errors.name }}</p>
 
         <label>Teléfono</label>
-        <input 
-          v-model="form.phone" 
-          type="tel" 
-          :disabled="readOnly || saving" 
-          placeholder="Ej: +591 70000000" 
-          :class="{ 'has-error': errors.phone }"
-        />
+        <input v-model="form.phone" type="tel" :disabled="readOnly || saving" placeholder="Ej: +591 70000000"
+          :class="{ 'has-error': errors.phone }" />
         <p v-if="errors.phone" class="error-text">{{ errors.phone }}</p>
 
         <label>Dirección</label>
-        <textarea 
-          v-model="form.address" 
-          :disabled="readOnly || saving" 
-          placeholder="Dirección descriptiva"
-          :class="{ 'has-error': errors.address }"
-        ></textarea>
+        <textarea v-model="form.address" :disabled="readOnly || saving" placeholder="Dirección descriptiva"
+          :class="{ 'has-error': errors.address }"></textarea>
         <p v-if="errors.address" class="error-text">{{ errors.address }}</p>
 
         <div class="row">
           <div class="col">
             <label>Latitud</label>
-            <input v-model.number="form.lat" type="number" step="any" :disabled="readOnly || saving" placeholder="-17.000" />
+            <input v-model.number="form.lat" type="number" step="any" :disabled="readOnly || saving"
+              placeholder="-17.000" />
           </div>
           <div class="col">
             <label>Longitud</label>
-            <input v-model.number="form.lon" type="number" step="any" :disabled="readOnly || saving" placeholder="-66.000" />
+            <input v-model.number="form.lon" type="number" step="any" :disabled="readOnly || saving"
+              placeholder="-66.000" />
           </div>
         </div>
-        <button v-if="!readOnly" type="button" class="btn btn-secondary btn-sm mb-2" @click="getLocation" :disabled="saving">
+        <button v-if="!readOnly" type="button" class="btn btn-secondary btn-sm mb-2" @click="getLocation"
+          :disabled="saving">
           📍 Obtener Ubicación Actual
         </button>
 
-        <label>Enfermedad / Diagnóstico</label>
-        <input v-model="form.illness" :disabled="readOnly || saving" placeholder="Ej: Diabetes Tipo 2" />
+        <label class="full-width-label">Enfermedad / Diagnóstico</label>
+        <input v-model="form.illness" :disabled="readOnly || saving" placeholder="Ej: Diabetes Tipo 2"
+          :class="{ 'has-error': errors.illness }" />
+        <p v-if="errors.illness" class="error-text">{{ errors.illness }}</p>
 
         <label>Tratamiento / Notas</label>
-        <textarea v-model="form.treatment_info" :disabled="readOnly || saving" placeholder="Descripción del tratamiento..."></textarea>
+        <textarea v-model="form.treatment_info" :disabled="readOnly || saving"
+          placeholder="Descripción del tratamiento..."></textarea>
 
         <div class="actions">
-          <button type="button" class="btn btn-secondary" @click="$emit('cancel')" :disabled="saving">{{ readOnly ? 'Cerrar' : 'Cancelar' }}</button>
-          <button 
-            v-if="!readOnly" 
-            type="submit" 
-            class="btn btn-primary"
-            :disabled="saving || (isEditing && !isDirty)"
-          >
+          <button type="button" class="btn btn-secondary" @click="$emit('cancel')" :disabled="saving">{{ readOnly ?
+            'Cerrar' : 'Cancelar' }}</button>
+          <button v-if="!readOnly" type="submit" class="btn btn-primary" :disabled="saving || (isEditing && !isDirty)">
             {{ saving ? 'Guardando... ⏳' : 'Guardar' }}
           </button>
         </div>
@@ -109,8 +94,8 @@ const form = reactive({
   name: '',
   phone: '',
   address: '',
-  lat: null,
-  lon: null,
+  lat: -17.514499,
+  lon: 63.170764,
   illness: '',
   treatment_info: ''
 })
@@ -119,18 +104,19 @@ const errors = reactive({
   ci: '',
   name: '',
   phone: '',
-  address: ''
+  address: '',
+  illness: ''
 })
 
 const isDirty = computed(() => {
   return form.ci !== (props.initialData.ci || '') ||
-         form.name !== (props.initialData.name || '') ||
-         form.phone !== (props.initialData.phone || '') ||
-         form.address !== (props.initialData.address || '') ||
-         form.lat !== (props.initialData.lat || null) ||
-         form.lon !== (props.initialData.lon || null) ||
-         form.illness !== (props.initialData.illness || '') ||
-         form.treatment_info !== (props.initialData.treatment_info || '')
+    form.name !== (props.initialData.name || '') ||
+    form.phone !== (props.initialData.phone || '') ||
+    form.address !== (props.initialData.address || '') ||
+    form.lat !== (props.initialData.lat || null) ||
+    form.lon !== (props.initialData.lon || null) ||
+    form.illness !== (props.initialData.illness || '') ||
+    form.treatment_info !== (props.initialData.treatment_info || '')
 })
 
 onMounted(() => {
@@ -145,6 +131,7 @@ const validate = () => {
   errors.name = ''
   errors.phone = ''
   errors.address = ''
+  errors.illness = ''
 
   if (!form.ci.trim()) {
     errors.ci = 'El CI es obligatorio'
@@ -162,20 +149,24 @@ const validate = () => {
     errors.address = 'La dirección es obligatoria'
     valid = false
   }
+  if (!form.illness.trim()) {
+    errors.illness = 'La enfermedad es obligatoria'
+    valid = false
+  }
 
   return valid
 }
 
 const handleSubmit = async () => {
   ciError.value = ''
-  
+
   if (!validate()) {
     return
   }
 
   // Validate CI uniqueness
   const ciTrimmed = form.ci.trim()
-  
+
   try {
     const existing = await dbService.getByField('patients', 'ci', ciTrimmed)
     // If editing, exclude current patient from uniqueness check
@@ -187,7 +178,7 @@ const handleSubmit = async () => {
   } catch (err) {
     console.error('Error validating CI:', err)
   }
-  
+
   emit('save', { ...form, ci: ciTrimmed })
 }
 
@@ -262,9 +253,15 @@ const getLocation = () => {
   font-weight: 500;
 }
 
-input.has-error, select.has-error, textarea.has-error {
+input.has-error,
+select.has-error,
+textarea.has-error {
   border-color: var(--color-danger, #e74c3c);
   outline: none;
   box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
+}
+
+.full-width-label {
+  display: block;
 }
 </style>
