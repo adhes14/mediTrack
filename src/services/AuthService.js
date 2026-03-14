@@ -25,6 +25,9 @@ export class AuthService {
           role: 'read_only', // default role
           createdAt: new Date().toISOString()
         })
+      } else if (user.photoURL && userSnap.data().photoURL !== user.photoURL) {
+        // Update photoURL if the user logs in with Google and it has changed
+        await updateDoc(userRef, { photoURL: user.photoURL })
       }
 
       return user
@@ -67,6 +70,19 @@ export class AuthService {
       return result.user
     } catch (error) {
       console.error('Error signing in with email:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Send Password Reset Email
+   */
+  async sendPasswordReset(email) {
+    const { sendPasswordResetEmail } = await import('firebase/auth')
+    try {
+      await sendPasswordResetEmail(auth, email)
+    } catch (error) {
+      console.error('Error sending password reset:', error)
       throw error
     }
   }

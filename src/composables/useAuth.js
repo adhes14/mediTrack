@@ -42,6 +42,10 @@ export function useAuth() {
     return await authService.signInWithEmail(email, password)
   }
 
+  const resetPassword = async (email) => {
+    return await authService.sendPasswordReset(email)
+  }
+
   const updateProfile = async (displayName, phone) => {
     if (!currentUser.value) return
     await authService.updateProfileData(currentUser.value.uid, { displayName, phone })
@@ -67,6 +71,7 @@ export function useAuth() {
     signIn,
     registerEmail,
     signInEmail,
+    resetPassword,
     updateProfile,
     signOut
   }

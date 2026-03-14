@@ -32,6 +32,10 @@
           <input type="password" v-model="password" class="form-control" required placeholder="******" />
         </div>
 
+        <div v-if="isLogin" class="forgot-password">
+          <a href="#" @click.prevent="handleResetPassword">¿Olvidaste tu contraseña?</a>
+        </div>
+
         <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
           <span v-if="loading">Procesando...</span>
           <span v-else>{{ isLogin ? 'Iniciar Sesión' : 'Registrarse' }}</span>
@@ -58,12 +62,12 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 
 const router = useRouter()
-const { signIn, signInEmail, registerEmail } = useAuth()
+const { signIn, signInEmail, registerEmail, resetPassword, isAuthenticated, isProfileComplete } = useAuth()
 
 const isLogin = ref(true)
 const email = ref('')
@@ -73,6 +77,17 @@ const phone = ref('')
 
 const loading = ref(false)
 const error = ref('')
+
+// Watch for authentication to automatically navigate
+watch(isAuthenticated, (newVal) => {
+  if (newVal) {
+    if (!isProfileComplete.value) {
+      router.push('/complete-profile')
+    } else {
+      router.push('/')
+    }
+  }
+}, { immediate: true })
 
 const handleEmailAuth = async () => {
   loading.value = true
@@ -84,10 +99,33 @@ const handleEmailAuth = async () => {
     } else {
       await registerEmail(email.value, password.value, displayName.value, phone.value)
     }
-    router.push('/')
+    // Redirection handled by watch
   } catch (err) {
     console.error('Email Auth error:', err)
-    error.value = 'Error de autenticación. Verifica tus credenciales.'
+    if (err.code === 'auth/email-already-in-use') {
+      error.value = 'El correo ya está en uso. Si usaste Google antes, intenta "Recuperar Contraseña".'
+    } else {
+      error.value = 'Error de autenticación. Verifica tus credenciales.'
+    }
+    loading.value = false
+  }
+}
+
+const handleResetPassword = async () => {
+  if (!email.value) {
+    error.value = 'Por favor ingresa tu correo electrónico para recuperar tu contraseña.'
+    return
+  }
+  
+  loading.value = true
+  error.value = ''
+  
+  try {
+    await resetPassword(email.value)
+    error.value = 'Correo de recuperación enviado. Revisa tu bandeja de entrada.'
+  } catch (err) {
+    console.error('Reset Password error:', err)
+    error.value = 'Error al enviar el correo de recuperación. Verifica que tu correo esté registrado.'
   } finally {
     loading.value = false
   }
@@ -99,11 +137,10 @@ const handleGoogleLogin = async () => {
   
   try {
     await signIn()
-    router.push('/')
+    // Redirection handled by watch
   } catch (err) {
     console.error('Google Login error:', err)
     error.value = 'Error al iniciar sesión con Google. Por favor intenta nuevamente.'
-  } finally {
     loading.value = false
   }
 }
@@ -225,6 +262,22 @@ const handleGoogleLogin = async () => {
 }
 
 .auth-toggle a:hover {
+  text-decoration: underline;
+}
+
+.forgot-password {
+  margin-top: calc(var(--spacing-xs) * -1);
+  margin-bottom: var(--spacing-md);
+  text-align: right;
+  font-size: var(--font-size-sm);
+}
+
+.forgot-password a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.forgot-password a:hover {
   text-decoration: underline;
 }
 
