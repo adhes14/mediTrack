@@ -5,6 +5,7 @@ import MedicinesView from '../views/MedicinesView.vue'
 import DeliveriesView from '../views/DeliveriesView.vue'
 import PatientReportView from '../views/PatientReportView.vue'
 import LoginView from '../views/LoginView.vue'
+import CompleteProfileView from '../views/CompleteProfileView.vue'
 import UsersView from '../views/UsersView.vue'
 import { useAuth } from '../composables/useAuth'
 
@@ -57,6 +58,12 @@ const routes = [
         name: 'users',
         component: UsersView,
         meta: { requiresAuth: true, roles: ['admin'] }
+    },
+    {
+        path: '/complete-profile',
+        name: 'complete-profile',
+        component: CompleteProfileView,
+        meta: { requiresAuth: true }
     }
 ]
 
@@ -66,12 +73,20 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-    const { isAuthenticated, userRole } = useAuth()
+    const { isAuthenticated, userRole, isProfileComplete } = useAuth()
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth !== false)
 
     if (requiresAuth && !isAuthenticated.value) {
         next('/login')
     } else if (to.path === '/login' && isAuthenticated.value) {
+        if (!isProfileComplete.value) {
+            next('/complete-profile')
+        } else {
+            next('/')
+        }
+    } else if (isAuthenticated.value && !isProfileComplete.value && to.path !== '/complete-profile') {
+        next('/complete-profile')
+    } else if (isAuthenticated.value && isProfileComplete.value && to.path === '/complete-profile') {
         next('/')
     } else if (to.meta.roles && !to.meta.roles.includes(userRole.value)) {
         next('/') // Redirect to dashboard if unauthorized

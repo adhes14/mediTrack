@@ -1,4 +1,4 @@
-import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth'
+import { signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth'
 import { auth, googleProvider } from './firebase'
 import { db } from './firebase'
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
@@ -35,6 +35,43 @@ export class AuthService {
   }
 
   /**
+   * Register with Email and Password
+   */
+  async registerWithEmail(email, password, displayName, phone) {
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, password)
+      const user = result.user
+
+      const userRef = doc(db, 'users', user.uid)
+      await setDoc(userRef, {
+        email: user.email,
+        displayName: displayName,
+        phone: phone,
+        role: 'read_only', // default role
+        createdAt: new Date().toISOString()
+      })
+
+      return user
+    } catch (error) {
+      console.error('Error registering with email:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Sign in with Email and Password
+   */
+  async signInWithEmail(email, password) {
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password)
+      return result.user
+    } catch (error) {
+      console.error('Error signing in with email:', error)
+      throw error
+    }
+  }
+
+  /**
    * Sign out the current user
    */
   async signOutUser() {
@@ -59,7 +96,8 @@ export class AuthService {
         callback({
           uid: user.uid,
           email: user.email,
-          displayName: user.displayName,
+          displayName: userData?.displayName || user.displayName,
+          phone: userData?.phone || null,
           photoURL: user.photoURL,
           role: userData?.role || 'read_only' // Fallback to read_only
         })
@@ -67,6 +105,19 @@ export class AuthService {
         callback(null)
       }
     })
+  }
+
+  /**
+   * Update Profile data
+   */
+  async updateProfileData(uid, data) {
+    try {
+      const userRef = doc(db, 'users', uid)
+      await updateDoc(userRef, data)
+    } catch (error) {
+      console.error('Error updating profile:', error)
+      throw error
+    }
   }
 }
 
