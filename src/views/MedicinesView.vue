@@ -18,7 +18,9 @@
           <h3>{{ medicine.name }}</h3>
           <p class="detail text-muted">{{ medicine.unit }}</p>
         </div>
-        <!-- Optional: Delete button logic -->
+        <button v-if="canEdit" class="delete-btn" @click.stop="confirmDelete(medicine)" title="Borrar medicamento">
+          🗑️
+        </button>
       </div>
     </div>
 
@@ -38,7 +40,7 @@ import MedicineForm from '../components/MedicineForm.vue'
 import { useDialog } from '../composables/useDialog'
 import { useAuth } from '../composables/useAuth'
 
-const { alert } = useDialog()
+const { alert, confirm } = useDialog()
 const { isAssistant } = useAuth()
 
 const canEdit = computed(() => !isAssistant.value)
@@ -75,6 +77,27 @@ const editMedicine = (medicine) => {
 const closeForm = () => {
   showForm.value = false
   currentMedicine.value = {}
+}
+
+const confirmDelete = async (medicine) => {
+  try {
+    const deliveries = await dbService.getAll('deliveries')
+    const relatedDeliveries = deliveries.filter(d => 
+      d.medicines && d.medicines.some(m => m.medicineId === medicine.id)
+    )
+
+    let message = `¿Estás seguro de que deseas borrar el medicamento "${medicine.name}"?`
+    if (relatedDeliveries.length > 0) {
+      message = `Este medicamento está incluido en ${relatedDeliveries.length} registro(s) de entrega. Solo se borrará el medicamento, los registros relacionados se mantendrán. ¿Desea continuar?`
+    }
+
+    if (await confirm(message, 'Confirmar borrado')) {
+      await dbService.delete('medicines', medicine.id)
+      await loadMedicines()
+    }
+  } catch (err) {
+    alert('Error al borrar el medicamento: ' + err.message)
+  }
 }
 
 const handleSave = async (formData) => {
@@ -168,5 +191,23 @@ const handleSave = async (formData) => {
 .text-muted {
   color: var(--color-text-light);
   margin: 0;
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 4px;
+  opacity: 0.6;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
 }
 </style>
