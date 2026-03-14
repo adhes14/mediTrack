@@ -12,7 +12,8 @@
     </div>
 
     <div v-else class="medicine-list">
-      <div v-for="medicine in medicines" :key="medicine.id" class="card medicine-item clickable" @click="editMedicine(medicine)">
+      <div v-for="medicine in medicines" :key="medicine.id" class="card medicine-item clickable"
+        @click="editMedicine(medicine)">
         <div class="medicine-info">
           <h3>{{ medicine.name }}</h3>
           <p class="detail text-muted">{{ medicine.unit }}</p>
@@ -25,13 +26,8 @@
     <button class="fab" @click="showAddForm">+</button>
 
     <!-- Form Modal -->
-    <MedicineForm 
-      v-if="showForm" 
-      :initialData="currentMedicine" 
-      :readOnly="isAssistant && !!currentMedicine.id"
-      @save="handleSave" 
-      @cancel="closeForm" 
-    />
+    <MedicineForm v-if="showForm" :initialData="currentMedicine" :readOnly="isAssistant && !!currentMedicine.id"
+      @save="handleSave" @cancel="closeForm" />
   </div>
 </template>
 
@@ -82,6 +78,24 @@ const closeForm = () => {
 
 const handleSave = async (formData) => {
   try {
+    // Duplicate check: name + unit (case insensitive and trimmed)
+    const normalizedName = formData.name.trim().toLowerCase()
+    const normalizedUnit = formData.unit.trim().toLowerCase()
+
+    const isDuplicate = medicines.value.some(m => {
+      // If we're editing, ignore the current medicine itself
+      if (formData.id && m.id === formData.id) return false
+
+      return m.name.trim().toLowerCase() === normalizedName &&
+        m.unit.trim().toLowerCase() === normalizedUnit
+    })
+
+    if (isDuplicate) {
+      closeForm()
+      alert(`Ya existe un medicamento con el nombre "${formData.name}" y la unidad "${formData.unit}".`)
+      return
+    }
+
     if (formData.id) {
       await dbService.update('medicines', formData)
     } else {
@@ -153,4 +167,3 @@ const handleSave = async (formData) => {
   margin: 0;
 }
 </style>
-
