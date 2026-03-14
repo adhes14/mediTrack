@@ -1,5 +1,9 @@
 {
-  "projects": {},
+  "projects": {
+    "default": "meditrack-adhemar-2026",
+    "production": "meditrack-adhemar-2026",
+    "development": "meditrack-dev-adhemar-2026"
+  },
   "targets": {},
   "etags": {}
 }
