@@ -36,7 +36,10 @@
     <div class="daily-deliveries">
       <div class="section-header">
         <h2>Entregas: {{ formatDate(selectedDate) }}</h2>
-        <button v-if="!isReadOnly" class="btn btn-primary btn-sm" @click="$router.push('/deliveries/new')">+ Programar</button>
+        <div class="actions-group">
+          <button v-if="!isReadOnly" class="btn btn-primary btn-sm" @click="$router.push('/deliveries/new')">+ Programar</button>
+          <button v-if="!isReadOnly" class="btn btn-secondary btn-sm" @click="$router.push('/batch-deliveries')">+ Lote</button>
+        </div>
       </div>
 
       <div v-if="selectedDayDeliveries.length === 0" class="card empty-state">
@@ -356,6 +359,11 @@ const deleteDelivery = async (id) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: var(--spacing-md);
+}
+
+.actions-group {
+  display: flex;
+  gap: var(--spacing-sm);
 }
 
 .delivery-item {

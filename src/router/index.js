@@ -7,6 +7,7 @@ import PatientReportView from '../views/PatientReportView.vue'
 import LoginView from '../views/LoginView.vue'
 import CompleteProfileView from '../views/CompleteProfileView.vue'
 import UsersView from '../views/UsersView.vue'
+import BatchDeliveriesView from '../views/BatchDeliveriesView.vue'
 import { useAuth } from '../composables/useAuth'
 
 const routes = [
@@ -45,6 +46,12 @@ const routes = [
         name: 'edit-delivery',
         component: DeliveriesView,
         props: true,
+        meta: { requiresAuth: true, roles: ['admin', 'manager', 'assistant'] }
+    },
+    {
+        path: '/batch-deliveries',
+        name: 'batch-deliveries',
+        component: BatchDeliveriesView,
         meta: { requiresAuth: true, roles: ['admin', 'manager', 'assistant'] }
     },
     {
