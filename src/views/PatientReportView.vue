@@ -206,7 +206,8 @@ const pendingCount = computed(() => patientDeliveries.value.filter(d => d.status
 // Helpers
 const getMedicineName = (id) => {
   const medicine = medicines.value.find(m => m.id === id)
-  return medicine ? medicine.name : 'Desconocido'
+  if (!medicine) return 'Desconocido'
+  return medicine.unit ? `${medicine.name} (${medicine.unit})` : medicine.name
 }
 
 const formatDate = (dateString) => {

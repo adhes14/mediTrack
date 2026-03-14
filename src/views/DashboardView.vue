@@ -213,7 +213,11 @@ const selectedDayDeliveries = computed(() => {
 
 const getPatientName = (id) => patients.value.find(p => p.id === id)?.name || 'Desconocido'
 const getPatientAddress = (id) => patients.value.find(p => p.id === id)?.address || ''
-const getMedicineName = (id) => medicines.value.find(m => m.id === id)?.name || ''
+const getMedicineName = (id) => {
+  const medicine = medicines.value.find(m => m.id === id)
+  if (!medicine) return ''
+  return medicine.unit ? `${medicine.name} (${medicine.unit})` : medicine.name
+}
 
 const isOverdue = (delivery) => {
   if (delivery.status === 'delivered') return false
