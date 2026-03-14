@@ -26,13 +26,13 @@
         <div class="row">
           <div class="col">
             <label>Latitud</label>
-            <input v-model.number="form.lat" type="number" step="any" :disabled="readOnly || saving"
+            <input v-model.number="form.lat" type="number" step="any" inputmode="decimal" :disabled="readOnly || saving"
               placeholder="-17.000" />
           </div>
           <div class="col">
             <label>Longitud</label>
-            <input v-model.number="form.lon" type="number" step="any" :disabled="readOnly || saving"
-              placeholder="-66.000" />
+            <input v-model.number="form.lon" type="number" step="any" inputmode="decimal" :disabled="readOnly || saving"
+              placeholder="-63.000" />
           </div>
         </div>
         <button v-if="!readOnly" type="button" class="btn btn-secondary btn-sm mb-2" @click="getLocation"
@@ -95,7 +95,7 @@ const form = reactive({
   phone: '',
   address: '',
   lat: -17.514499,
-  lon: 63.170764,
+  lon: -63.170764,
   illness: '',
   treatment_info: ''
 })
