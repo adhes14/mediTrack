@@ -3,7 +3,7 @@
     <div class="header">
       <h1>Pacientes</h1>
     </div>
-    
+
     <div v-if="loading" class="text-center">Cargando...</div>
 
     <div v-else-if="patients.length === 0" class="card empty-state">
@@ -12,7 +12,8 @@
     </div>
 
     <div v-else class="patient-list">
-      <div v-for="patient in patients" :key="patient.id" class="card patient-item clickable" @click="editPatient(patient)">
+      <div v-for="patient in patients" :key="patient.id" class="card patient-item clickable"
+        @click="editPatient(patient)">
         <div class="patient-info">
           <h3>{{ patient.name }}</h3>
           <p class="detail ci-badge" v-if="patient.ci">🪪 CI: {{ patient.ci }}</p>
@@ -21,13 +22,12 @@
           <p class="detail text-muted" v-if="patient.illness">{{ patient.illness }}</p>
         </div>
         <div class="patient-actions" @click.stop>
-            <a v-if="patient.lat && patient.lon" 
-               :href="`https://www.google.com/maps/search/?api=1&query=${patient.lat},${patient.lon}`" 
-               target="_blank" 
-               class="btn btn-map">
-              🗺️ Mapa
-            </a>
-            <!-- Delete button could be here, but maybe inside edit form or separate action -->
+          <a v-if="patient.lat && patient.lon"
+            :href="`https://www.google.com/maps/search/?api=1&query=${patient.lat},${patient.lon}`" target="_blank"
+            class="btn btn-map">
+            🗺️ Mapa
+          </a>
+          <!-- Delete button could be here, but maybe inside edit form or separate action -->
         </div>
       </div>
     </div>
@@ -36,13 +36,8 @@
     <button class="fab" @click="showAddForm">+</button>
 
     <!-- Form Modal -->
-    <PatientForm 
-      v-if="showForm" 
-      :initialData="currentPatient" 
-      :readOnly="isAssistant && !!currentPatient.id"
-      @save="handleSave" 
-      @cancel="closeForm" 
-    />
+    <PatientForm v-if="showForm" :initialData="currentPatient" :readOnly="isAssistant && !!currentPatient.id"
+      @save="handleSave" @cancel="closeForm" />
   </div>
 </template>
 
@@ -190,4 +185,3 @@ const handleSave = async (formData) => {
   color: var(--color-primary, #009688);
 }
 </style>
-

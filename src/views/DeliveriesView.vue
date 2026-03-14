@@ -29,8 +29,10 @@
               {{ med.name }} ({{ med.unit }})
             </option>
           </select>
-          <input type="number" v-model.number="item.quantity" min="1" placeholder="Cant." required class="qty-input" />
-          <button type="button" class="btn btn-secondary btn-remove" @click="removeMedicine(index)" v-if="form.medicines.length > 1">
+          <input type="number" v-model.number="item.quantity" min="1" placeholder="Cantidad" required
+            class="qty-input" />
+          <button type="button" class="btn btn-secondary btn-remove" @click="removeMedicine(index)"
+            v-if="form.medicines.length > 1">
             ✕
           </button>
         </div>
@@ -60,7 +62,7 @@ const medicines = ref([])
 const form = reactive({
   patientId: '',
   scheduledDate: new Date().toISOString().split('T')[0],
-  medicines: [{ medicineId: '', quantity: 1 }],
+  medicines: [{ medicineId: '', quantity: 30 }],
   status: 'pending' // Default status
 })
 
@@ -141,4 +143,3 @@ const handleSubmit = async () => {
   margin-top: var(--spacing-xs);
 }
 </style>
-
