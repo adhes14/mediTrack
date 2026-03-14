@@ -98,7 +98,7 @@ onMounted(async () => {
       dbService.getAll('patients'),
       dbService.getAll('medicines')
     ])
-    patients.value = pts
+    patients.value = pts.filter(p => p.status !== 'inactive')
     medicines.value = meds
 
     if (isEdit.value) {

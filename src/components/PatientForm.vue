@@ -49,10 +49,33 @@
         <textarea v-model="form.treatment_info" :disabled="readOnly || saving"
           placeholder="Descripción del tratamiento..."></textarea>
 
+        <div v-if="form.status === 'inactive'" class="status-warning">
+          <strong>Paciente Inactivo</strong>
+          <p><strong>Fecha de baja:</strong> {{ formatDate(form.deactivationDate) }}</p>
+          <p><strong>Razón:</strong> {{ form.deactivationReason }}</p>
+          <button v-if="!readOnly" type="button" class="btn btn-secondary btn-sm mt-2" @click="reactivatePatient" :disabled="saving">
+            Reactivar Paciente
+          </button>
+        </div>
+
+        <div v-if="showDeactivationField" class="deactivation-section">
+          <label>Razón de la baja</label>
+          <textarea v-model="form.deactivationReason" :disabled="saving" placeholder="Por qué se da de baja al paciente..."
+            :class="{ 'has-error': errors.deactivationReason }"></textarea>
+          <p v-if="errors.deactivationReason" class="error-text">{{ errors.deactivationReason }}</p>
+          <div class="row mt-2">
+            <button type="button" class="btn btn-secondary btn-sm" @click="cancelDeactivation" :disabled="saving">Cancelar Baja</button>
+            <button type="button" class="btn btn-danger btn-sm" @click="confirmDeactivation" :disabled="saving">Confirmar Baja</button>
+          </div>
+        </div>
+
         <div class="actions">
+          <button v-if="isEditing && form.status !== 'inactive' && !showDeactivationField && !readOnly" type="button" class="btn btn-danger mr-auto" @click="showDeactivationField = true" :disabled="saving">
+            Dar de baja
+          </button>
           <button type="button" class="btn btn-secondary" @click="$emit('cancel')" :disabled="saving">{{ readOnly ?
             'Cerrar' : 'Cancelar' }}</button>
-          <button v-if="!readOnly" type="submit" class="btn btn-primary" :disabled="saving || (isEditing && !isDirty)">
+          <button v-if="!readOnly && !showDeactivationField" type="submit" class="btn btn-primary" :disabled="saving || (isEditing && !isDirty)">
             {{ saving ? 'Guardando... ⏳' : 'Guardar' }}
           </button>
         </div>
@@ -97,15 +120,47 @@ const form = reactive({
   lat: -17.514499,
   lon: -63.170764,
   illness: '',
-  treatment_info: ''
+  treatment_info: '',
+  status: 'active',
+  deactivationReason: '',
+  deactivationDate: null
 })
+
+const showDeactivationField = ref(false)
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleDateString('es-ES')
+}
+
+const cancelDeactivation = () => {
+  showDeactivationField.value = false
+  form.deactivationReason = props.initialData.deactivationReason || ''
+}
+
+const confirmDeactivation = () => {
+  if (!form.deactivationReason.trim()) {
+    errors.deactivationReason = 'La razón es obligatoria para dar de baja'
+    return
+  }
+  form.status = 'inactive'
+  form.deactivationDate = new Date().toISOString()
+  showDeactivationField.value = false
+}
+
+const reactivatePatient = () => {
+  form.status = 'active'
+  form.deactivationReason = ''
+  form.deactivationDate = null
+}
 
 const errors = reactive({
   ci: '',
   name: '',
   phone: '',
   address: '',
-  illness: ''
+  illness: '',
+  deactivationReason: ''
 })
 
 const isDirty = computed(() => {
@@ -116,12 +171,16 @@ const isDirty = computed(() => {
     form.lat !== (props.initialData.lat || null) ||
     form.lon !== (props.initialData.lon || null) ||
     form.illness !== (props.initialData.illness || '') ||
-    form.treatment_info !== (props.initialData.treatment_info || '')
+    form.treatment_info !== (props.initialData.treatment_info || '') ||
+    form.status !== (props.initialData.status || 'active') ||
+    form.deactivationReason !== (props.initialData.deactivationReason || '') ||
+    form.deactivationDate !== (props.initialData.deactivationDate || null)
 })
 
 onMounted(() => {
   if (props.initialData.id) {
     Object.assign(form, props.initialData)
+    if (!form.status) form.status = 'active'
   }
 })
 
@@ -263,5 +322,39 @@ textarea.has-error {
 
 .full-width-label {
   display: block;
+}
+
+.status-warning {
+  background-color: rgba(231, 76, 60, 0.1);
+  border-left: 4px solid var(--color-danger, #e74c3c);
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  border-radius: var(--border-radius-sm);
+}
+
+.status-warning p {
+  margin: var(--spacing-xs) 0 0 0;
+  font-size: var(--font-size-sm);
+}
+
+.deactivation-section {
+  background-color: var(--color-bg-light, #f8f9fa);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-sm);
+  margin-bottom: var(--spacing-md);
+  border: 1px solid var(--color-border, #eee);
+}
+
+.deactivation-section label {
+  color: var(--color-danger, #e74c3c);
+  font-weight: 600;
+}
+
+.mr-auto {
+  margin-right: auto;
+}
+
+.mt-2 {
+  margin-top: var(--spacing-sm);
 }
 </style>

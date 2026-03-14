@@ -43,6 +43,12 @@
     <!-- Report Content -->
     <div v-if="!loading && selectedPatientId" class="report-content">
       
+      <div v-if="selectedPatient?.status === 'inactive'" class="status-warning mb-4">
+        <strong>Paciente Inactivo</strong>
+        <p><strong>Fecha de baja:</strong> {{ formatDate(selectedPatient.deactivationDate) }}</p>
+        <p><strong>Razón:</strong> {{ selectedPatient.deactivationReason }}</p>
+      </div>
+
       <!-- Summary Metrics -->
       <div class="summary-metrics">
         <div class="metric-card card">
@@ -151,6 +157,11 @@ const hideDropdown = () => {
 }
 
 // Computed properties for the report
+const selectedPatient = computed(() => {
+  if (!selectedPatientId.value) return null
+  return patients.value.find(p => p.id === selectedPatientId.value)
+})
+
 const patientDeliveries = computed(() => {
   if (!selectedPatientId.value) return []
   return deliveries.value.filter(d => d.patientId === selectedPatientId.value)
@@ -243,6 +254,23 @@ const formatDate = (dateString) => {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+.status-warning {
+  background-color: rgba(231, 76, 60, 0.1);
+  border-left: 4px solid var(--color-danger, #e74c3c);
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  border-radius: var(--border-radius-sm);
+}
+
+.status-warning p {
+  margin: var(--spacing-xs) 0 0 0;
+  font-size: var(--font-size-sm);
+}
+
+.mb-4 {
+  margin-bottom: var(--spacing-lg);
 }
 
 .summary-metrics {
