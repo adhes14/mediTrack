@@ -6,18 +6,25 @@
 
     <!-- Patient Selection -->
     <div class="card patient-selector">
-      <label for="patient-search" class="form-label">Buscar Paciente:</label>
+      <div class="selector-header">
+        <label for="patient-search" class="form-label">Buscar Paciente:</label>
+        <button v-if="selectedPatientId" class="btn-text" @click="resetSearch">Nueva búsqueda</button>
+      </div>
       <div class="autocomplete-wrapper">
-        <input 
-          id="patient-search" 
-          type="text" 
-          class="form-input" 
-          v-model="searchQuery" 
-          @focus="showDropdown = true"
-          @blur="hideDropdown"
-          placeholder="Escribe para buscar un paciente..."
-          autocomplete="off"
-        >
+        <div class="input-with-clear">
+          <input 
+            id="patient-search" 
+            ref="searchInput"
+            type="text" 
+            class="form-input" 
+            v-model="searchQuery" 
+            @focus="onSearchFocus"
+            @blur="hideDropdown"
+            placeholder="Escribe para buscar un paciente..."
+            autocomplete="off"
+          >
+          <button v-if="searchQuery" class="clear-btn" @click="clearSearch" title="Limpiar búsqueda">✕</button>
+        </div>
         <ul v-if="showDropdown && filteredPatients.length > 0" class="autocomplete-list">
           <li 
             v-for="patient in filteredPatients" 
@@ -113,6 +120,7 @@ const loading = ref(true)
 
 const searchQuery = ref('')
 const showDropdown = ref(false)
+const searchInput = ref(null)
 
 onMounted(async () => {
   await loadData()
@@ -150,6 +158,23 @@ const selectPatient = (patient) => {
   selectedPatientId.value = patient.id
   searchQuery.value = patient.name
   showDropdown.value = false
+}
+
+const onSearchFocus = (event) => {
+  showDropdown.value = true
+  event.target.select()
+}
+
+const clearSearch = () => {
+  searchQuery.value = ''
+  selectedPatientId.value = ''
+  searchInput.value?.focus()
+}
+
+const resetSearch = () => {
+  searchQuery.value = ''
+  selectedPatientId.value = ''
+  searchInput.value?.focus()
 }
 
 const hideDropdown = () => {
@@ -206,6 +231,53 @@ const formatDate = (dateString) => {
 
 .autocomplete-wrapper {
   position: relative;
+}
+
+.selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xs);
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.input-with-clear {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.clear-btn {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--color-text-light);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.clear-btn:hover {
+  color: var(--color-danger);
+}
+
+.form-input {
+  padding-right: 40px !important;
 }
 
 .autocomplete-list {
