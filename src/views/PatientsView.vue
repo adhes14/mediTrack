@@ -37,7 +37,7 @@
 
     <!-- Form Modal -->
     <PatientForm v-if="showForm" :initialData="currentPatient" :readOnly="isAssistant && !!currentPatient.id"
-      @save="handleSave" @cancel="closeForm" />
+      :saving="saving" @save="handleSave" @cancel="closeForm" />
   </div>
 </template>
 
@@ -57,6 +57,7 @@ const patients = ref([])
 const loading = ref(true)
 const showForm = ref(false)
 const currentPatient = ref({})
+const saving = ref(false)
 
 const loadPatients = async () => {
   loading.value = true
@@ -87,6 +88,7 @@ const closeForm = () => {
 }
 
 const handleSave = async (formData) => {
+  saving.value = true
   try {
     if (formData.id) {
       await dbService.update('patients', formData)
@@ -97,6 +99,8 @@ const handleSave = async (formData) => {
     closeForm()
   } catch (err) {
     alert('Error guardando paciente: ' + err.message)
+  } finally {
+    saving.value = false
   }
 }
 </script>

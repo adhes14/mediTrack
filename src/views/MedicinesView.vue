@@ -27,7 +27,7 @@
 
     <!-- Form Modal -->
     <MedicineForm v-if="showForm" :initialData="currentMedicine" :readOnly="isAssistant && !!currentMedicine.id"
-      @save="handleSave" @cancel="closeForm" />
+      :saving="saving" @save="handleSave" @cancel="closeForm" />
   </div>
 </template>
 
@@ -47,6 +47,7 @@ const medicines = ref([])
 const loading = ref(true)
 const showForm = ref(false)
 const currentMedicine = ref({})
+const saving = ref(false)
 
 const loadMedicines = async () => {
   loading.value = true
@@ -77,6 +78,7 @@ const closeForm = () => {
 }
 
 const handleSave = async (formData) => {
+  saving.value = true
   try {
     // Duplicate check: name + unit (case insensitive and trimmed)
     const normalizedName = formData.name.trim().toLowerCase()
@@ -91,7 +93,6 @@ const handleSave = async (formData) => {
     })
 
     if (isDuplicate) {
-      closeForm()
       alert(`Ya existe un medicamento con el nombre "${formData.name}" y la unidad "${formData.unit}".`)
       return
     }
@@ -105,6 +106,8 @@ const handleSave = async (formData) => {
     closeForm()
   } catch (err) {
     alert('Error guardando medicamento: ' + err.message)
+  } finally {
+    saving.value = false
   }
 }
 </script>
