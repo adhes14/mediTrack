@@ -40,6 +40,13 @@ const routes = [
         meta: { requiresAuth: true, roles: ['admin', 'manager', 'assistant'] }
     },
     {
+        path: '/deliveries/edit/:id',
+        name: 'edit-delivery',
+        component: DeliveriesView,
+        props: true,
+        meta: { requiresAuth: true, roles: ['admin', 'manager', 'assistant'] }
+    },
+    {
         path: '/reports',
         name: 'reports',
         component: PatientReportView,

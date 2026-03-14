@@ -56,6 +56,9 @@
               <span class="status-badge" :class="[delivery.status, { 'readonly': isReadOnly }]" @click="toggleStatus(delivery)">
                 {{ delivery.status === 'delivered' ? 'Entregado' : 'Pendiente' }}
               </span>
+              <button v-if="delivery.status === 'pending' && !isReadOnly" class="edit-btn" @click.stop="$router.push(`/deliveries/edit/${delivery.id}`)" title="Editar entrega">
+                ✏️
+              </button>
               <button v-if="delivery.status === 'pending' && !isReadOnly" class="delete-btn" @click.stop="deleteDelivery(delivery.id)" title="Borrar entrega">
                 🗑️
               </button>
@@ -373,7 +376,7 @@ const deleteDelivery = async (id) => {
   gap: var(--spacing-sm);
 }
 
-.delete-btn {
+.edit-btn, .delete-btn {
   background: none;
   border: none;
   cursor: pointer;
@@ -386,9 +389,13 @@ const deleteDelivery = async (id) => {
   justify-content: center;
 }
 
-.delete-btn:hover {
+.edit-btn:hover, .delete-btn:hover {
   opacity: 1;
   transform: scale(1.1);
+}
+
+.edit-btn:hover {
+  color: var(--color-primary);
 }
 
 .address {

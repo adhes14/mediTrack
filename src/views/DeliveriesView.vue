@@ -1,7 +1,7 @@
 <template>
   <div class="deliveries-view container">
     <div class="header">
-      <h1>Programar Entrega</h1>
+      <h1>{{ isEdit ? 'Editar Entrega' : 'Programar Entrega' }}</h1>
     </div>
 
     <form class="card delivery-form" @submit.prevent="handleSubmit">
@@ -41,23 +41,33 @@
 
       <div class="actions">
         <button type="button" class="btn btn-secondary" @click="$router.push('/')">Cancelar</button>
-        <button type="submit" class="btn btn-primary btn-block">Guardar Entrega</button>
+        <button type="submit" class="btn btn-primary btn-block">
+          {{ isEdit ? 'Actualizar Entrega' : 'Guardar Entrega' }}
+        </button>
       </div>
     </form>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { dbService } from '../services/DatabaseService'
 import { useDialog } from '../composables/useDialog'
+
+const props = defineProps({
+  id: {
+    type: String,
+    default: ''
+  }
+})
 
 const { alert } = useDialog()
 
 const router = useRouter()
 const patients = ref([])
 const medicines = ref([])
+const isEdit = computed(() => !!props.id)
 
 const form = reactive({
   patientId: '',
@@ -74,13 +84,26 @@ onMounted(async () => {
     ])
     patients.value = pts
     medicines.value = meds
+
+    if (isEdit.value) {
+      const delivery = await dbService.getById('deliveries', props.id)
+      if (delivery) {
+        form.patientId = delivery.patientId
+        form.scheduledDate = delivery.scheduledDate
+        form.medicines = JSON.parse(JSON.stringify(delivery.medicines))
+        form.status = delivery.status
+      } else {
+        alert('Entrega no encontrada')
+        router.push('/')
+      }
+    }
   } catch (err) {
     console.error('Error loading data:', err)
   }
 })
 
 const addMedicineRow = () => {
-  form.medicines.push({ medicineId: '', quantity: 1 })
+  form.medicines.push({ medicineId: '', quantity: 30 })
 }
 
 const removeMedicine = (index) => {
@@ -93,9 +116,13 @@ const handleSubmit = async () => {
     if (!form.patientId) return alert('Seleccione un paciente')
     if (form.medicines.some(m => !m.medicineId || m.quantity < 1)) return alert('Complete los medicamentos')
 
-    // Prepare data (ensure deep copy if needed, but reactive is fine here)
-    await dbService.add('deliveries', form)
-    alert('Entrega programada con éxito')
+    if (isEdit.value) {
+      await dbService.update('deliveries', { ...form, id: props.id })
+      alert('Entrega actualizada con éxito')
+    } else {
+      await dbService.add('deliveries', form)
+      alert('Entrega programada con éxito')
+    }
     router.push('/')
   } catch (err) {
     alert('Error guardando entrega: ' + err.message)
