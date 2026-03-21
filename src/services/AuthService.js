@@ -136,6 +136,7 @@ export class AuthService {
         callback({
           uid: user.uid,
           email: user.email,
+          emailVerified: user.emailVerified,
           displayName: userData?.displayName || user.displayName,
           phone: userData?.phone || null,
           photoURL: user.photoURL,
@@ -187,7 +188,16 @@ export class AuthService {
       const result = await signInWithEmailAndPassword(auth, email, password)
       const user = result.user
 
-      // 2. Link the pending Google credential
+      // 2. Check if email is verified BEFORE linking
+      if (!user.emailVerified) {
+        // Sign out immediately to stay in a clean state if not verified
+        await signOut(auth)
+        const error = new Error('Por favor, verifica tu correo electrónico antes de vincular tu cuenta con Google.')
+        error.code = 'auth/email-not-verified'
+        throw error
+      }
+
+      // 3. Link the pending Google credential
       await linkWithCredential(user, pendingCredential)
 
       return user
@@ -207,6 +217,17 @@ export class AuthService {
       console.error('Error updating profile:', error)
       throw error
     }
+  }
+
+  /**
+   * Reload current user to check for verification updates
+   */
+  async reloadUserData() {
+    if (auth.currentUser) {
+      await auth.currentUser.reload()
+      return auth.currentUser
+    }
+    return null
   }
 }
 

@@ -80,10 +80,13 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-    const { isAuthenticated, userRole, isProfileComplete } = useAuth()
+    const { isAuthenticated, userRole, isProfileComplete, isEmailVerified } = useAuth()
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth !== false)
 
     if (requiresAuth && !isAuthenticated.value) {
+        next('/login')
+    } else if (requiresAuth && !isEmailVerified.value) {
+        // Redirigir a login si no está verificado para que vea el aviso
         next('/login')
     } else if (to.path === '/login' && isAuthenticated.value) {
         if (!isProfileComplete.value) {

@@ -15,7 +15,32 @@
         {{ infoMessage }}
       </div>
 
-      <form v-if="!needsLinking" @submit.prevent="handleEmailAuth" class="auth-form">
+      <!-- 1. State: Logged in but NOT verified -->
+      <div v-if="isAuthenticated && !isEmailVerified" class="verify-msg">
+        <h3>Verifica tu correo</h3>
+        <p>Tu cuenta aún no ha sido verificada. Revisa tu bandeja de entrada o haz clic en el botón de abajo si ya verificaste.</p>
+        <button @click="checkVerificationStatus" class="btn btn-primary" :disabled="loading">
+          Ya verifiqué mi correo
+        </button>
+        <button @click="signOut" class="btn btn-link">Cerrar sesión</button>
+      </div>
+
+      <!-- 2. State: Account Linking Flow (Only for verified or new links) -->
+      <div v-else-if="needsLinking" class="linking-container">
+        <p class="linking-text">Ya tienes una cuenta con <strong>{{ email }}</strong>. Ingresa tu contraseña para vincularla con Google.</p>
+        <div class="form-group">
+          <label>Contraseña *</label>
+          <input type="password" v-model="password" class="form-control" required placeholder="******" />
+        </div>
+        <button @click="handleLinkAccount" class="btn btn-primary btn-block" :disabled="loading">
+          <span v-if="loading">Vinculando...</span>
+          <span v-else>Vincular y Continuar</span>
+        </button>
+        <button @click="needsLinking = false; error = '';" class="btn btn-link btn-block">Cancelar</button>
+      </div>
+
+      <!-- 3. State: Normal Login / Register -->
+      <form v-else-if="!isAuthenticated" @submit.prevent="handleEmailAuth" class="auth-form">
         <div v-if="!isLogin" class="form-group">
           <label>Nombre Completo *</label>
           <input type="text" v-model="displayName" class="form-control" required placeholder="Ej. Juan Pérez" />
@@ -46,29 +71,15 @@
         </button>
       </form>
 
-      <!-- Linking UI -->
-      <div v-else class="linking-container">
-        <p class="linking-text">Ya tienes una cuenta con <strong>{{ email }}</strong>. Ingresa tu contraseña para vincularla con Google.</p>
-        <div class="form-group">
-          <label>Contraseña *</label>
-          <input type="password" v-model="password" class="form-control" required placeholder="******" />
-        </div>
-        <button @click="handleLinkAccount" class="btn btn-primary btn-block" :disabled="loading">
-          <span v-if="loading">Vinculando...</span>
-          <span v-else>Vincular y Continuar</span>
-        </button>
-        <button @click="needsLinking = false; error = '';" class="btn btn-link btn-block">Cancelar</button>
-      </div>
-
-      <div class="auth-toggle">
+      <div v-if="!isAuthenticated" class="auth-toggle">
         <a href="#" @click.prevent="isLogin = !isLogin">
           {{ isLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión' }}
         </a>
       </div>
 
-      <div class="divider"><span>O</span></div>
+      <div v-if="!isAuthenticated" class="divider"><span>O</span></div>
       
-      <button @click="handleGoogleLogin" class="btn btn-block google-btn" :disabled="loading">
+      <button v-if="!isAuthenticated" @click="handleGoogleLogin" class="btn btn-block google-btn" :disabled="loading">
         <span v-if="loading">Iniciando sesión...</span>
         <span v-else>
           <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo" class="google-icon" />
@@ -92,8 +103,11 @@ const {
   resetPassword, 
   isAuthenticated, 
   isProfileComplete, 
+  isEmailVerified,
   signInAndLinkGoogle,
-  getGoogleCredentialFromError
+  getGoogleCredentialFromError,
+  refreshCurrentUser,
+  signOut
 } = useAuth()
 
 const isLogin = ref(true)
@@ -109,8 +123,8 @@ const needsLinking = ref(false)
 const pendingCredential = ref(null)
 
 // Watch for authentication to automatically navigate
-watch(isAuthenticated, (newVal) => {
-  if (newVal) {
+watch([isAuthenticated, isEmailVerified], ([newAuth, newVerify]) => {
+  if (newAuth && newVerify) {
     if (!isProfileComplete.value) {
       router.push('/complete-profile')
     } else {
@@ -140,6 +154,23 @@ const handleEmailAuth = async () => {
     } else {
       error.value = 'Error de autenticación. Verifica tus credenciales.'
     }
+    loading.value = false
+  }
+}
+
+const checkVerificationStatus = async () => {
+  loading.value = true
+  try {
+    const user = await refreshCurrentUser()
+    if (user?.emailVerified) {
+      // Refresh logic already triggers the watch if values change
+      infoMessage.value = '¡Correo verificado con éxito!'
+    } else {
+      error.value = 'El correo aún no ha sido verificado. Por favor revisa tu bandeja de entrada.'
+    }
+  } catch (err) {
+    console.error('Check verification error:', err)
+  } finally {
     loading.value = false
   }
 }
@@ -202,19 +233,17 @@ const handleLinkAccount = async () => {
   error.value = ''
   
   try {
-    // Re-attempt Google sign in to get the credential (or use the one from error if possible)
-    // Actually, the easiest way is to let signInAndLinkGoogle handle it if we have the credential
-    // But getting the credential from the error is tricky in v9/v10.
-    
-    // For simplicity, we'll follow the "sign in with password then link" flow.
-    // However, signInAndLinkGoogle needs the pendingCredential.
-    
-    // Let's import GoogleAuthProvider here if needed or use the one in AuthService
     await signInAndLinkGoogle(email.value, password.value, pendingCredential.value)
-    // Redirection handled by watch
+    // Success - Redirection handled by watch
   } catch (err) {
     console.error('Linking error:', err)
-    error.value = 'Error al vincular la cuenta. Verifica tu contraseña.'
+    if (err.code === 'auth/email-not-verified') {
+      error.value = err.message
+      needsLinking.value = false
+      pendingCredential.value = null
+    } else {
+      error.value = 'Error al vincular la cuenta. Verifica tu contraseña.'
+    }
     loading.value = false
   }
 }
@@ -296,6 +325,25 @@ const handleLinkAccount = async () => {
   background-color: rgba(225, 112, 85, 0.1);
   padding: 8px;
   border-radius: 4px;
+}
+
+.verify-msg {
+  border: 1px solid var(--color-primary);
+  background-color: rgba(9, 132, 227, 0.05);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.verify-msg h3 {
+  color: var(--color-primary-dark);
+  margin-bottom: var(--spacing-sm);
+}
+
+.verify-msg p {
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-md);
+  color: var(--color-text-light);
 }
 
 .info-msg {

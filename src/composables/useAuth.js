@@ -15,6 +15,7 @@ export function useAuth() {
   const isAssistant = computed(() => userRole.value === 'assistant')
   const isReadOnly = computed(() => userRole.value === 'read_only')
   const isProfileComplete = computed(() => !!(currentUser.value?.displayName && currentUser.value?.phone))
+  const isEmailVerified = computed(() => currentUser.value?.emailVerified || false)
 
   /**
    * Initialize auth state listener
@@ -65,6 +66,19 @@ export function useAuth() {
     currentUser.value = null
   }
 
+  const refreshCurrentUser = async () => {
+    const user = await authService.reloadUserData()
+    if (user) {
+      // Manually trigger update in reactive state by creating a new shallow copy
+      // This helps if the internal listener hasn't fired yet
+      currentUser.value = {
+        ...currentUser.value,
+        emailVerified: user.emailVerified
+      }
+    }
+    return user
+  }
+
   return {
     currentUser,
     userRole,
@@ -75,6 +89,7 @@ export function useAuth() {
     isManager,
     isAssistant,
     isReadOnly,
+    isEmailVerified,
     initAuth,
     signIn,
     signInAndLinkGoogle,
@@ -83,6 +98,7 @@ export function useAuth() {
     signInEmail,
     resetPassword,
     updateProfile,
+    refreshCurrentUser,
     signOut
   }
 }
