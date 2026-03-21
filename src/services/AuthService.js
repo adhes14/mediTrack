@@ -6,6 +6,7 @@ import {
   signInWithEmailAndPassword,
   linkWithCredential,
   sendEmailVerification,
+  updatePassword,
   GoogleAuthProvider
 } from 'firebase/auth'
 import { auth, googleProvider } from './firebase'
@@ -215,6 +216,19 @@ export class AuthService {
       await updateDoc(userRef, data)
     } catch (error) {
       console.error('Error updating profile:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Update the current user's password
+   */
+  async updateUserPassword(newPassword) {
+    if (!auth.currentUser) throw new Error('No hay usuario autenticado')
+    try {
+      await updatePassword(auth.currentUser, newPassword)
+    } catch (error) {
+      console.error('Error updating password:', error)
       throw error
     }
   }

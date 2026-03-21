@@ -61,6 +61,10 @@ export function useAuth() {
     currentUser.value = { ...currentUser.value, displayName, phone }
   }
 
+  const updateUserPassword = async (newPassword) => {
+    await authService.updateUserPassword(newPassword)
+  }
+
   const signOut = async () => {
     await authService.signOutUser()
     currentUser.value = null
@@ -98,6 +102,7 @@ export function useAuth() {
     signInEmail,
     resetPassword,
     updateProfile,
+    updateUserPassword,
     refreshCurrentUser,
     signOut
   }

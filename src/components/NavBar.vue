@@ -20,10 +20,6 @@
       <span class="icon">⚙️</span>
       <span class="label">Admin</span>
     </router-link>
-    <button @click="handleSignOut" class="nav-item logout-btn">
-      <span class="icon">🚪</span>
-      <span class="label">Salir</span>
-    </button>
   </nav>
 </template>
 

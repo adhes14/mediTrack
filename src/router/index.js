@@ -8,6 +8,7 @@ import LoginView from '../views/LoginView.vue'
 import CompleteProfileView from '../views/CompleteProfileView.vue'
 import UsersView from '../views/UsersView.vue'
 import BatchDeliveriesView from '../views/BatchDeliveriesView.vue'
+import ProfileView from '../views/ProfileView.vue'
 import { useAuth } from '../composables/useAuth'
 
 const routes = [
@@ -70,6 +71,12 @@ const routes = [
         path: '/complete-profile',
         name: 'complete-profile',
         component: CompleteProfileView,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/profile',
+        name: 'profile',
+        component: ProfileView,
         meta: { requiresAuth: true }
     }
 ]

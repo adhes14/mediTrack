@@ -30,7 +30,12 @@
         <p class="linking-text">Ya tienes una cuenta con <strong>{{ email }}</strong>. Ingresa tu contraseña para vincularla con Google.</p>
         <div class="form-group">
           <label>Contraseña *</label>
-          <input type="password" v-model="password" class="form-control" required placeholder="******" />
+          <div class="password-input-wrapper">
+            <input :type="showPassword ? 'text' : 'password'" v-model="password" class="form-control" required placeholder="******" />
+            <button type="button" class="toggle-password" @click="showPassword = !showPassword" title="Mostrar/Ocultar contraseña">
+              {{ showPassword ? '🔓' : '👁️' }}
+            </button>
+          </div>
         </div>
         <button @click="handleLinkAccount" class="btn btn-primary btn-block" :disabled="loading">
           <span v-if="loading">Vinculando...</span>
@@ -58,7 +63,22 @@
 
         <div class="form-group">
           <label>Contraseña *</label>
-          <input type="password" v-model="password" class="form-control" required placeholder="******" />
+          <div class="password-input-wrapper">
+            <input :type="showPassword ? 'text' : 'password'" v-model="password" class="form-control" required placeholder="******" />
+            <button type="button" class="toggle-password" @click="showPassword = !showPassword" title="Mostrar/Ocultar contraseña">
+              {{ showPassword ? '🔓' : '👁️' }}
+            </button>
+          </div>
+        </div>
+
+        <div v-if="!isLogin" class="form-group">
+          <label>Confirmar Contraseña *</label>
+          <div class="password-input-wrapper">
+            <input :type="showConfirmPassword ? 'text' : 'password'" v-model="confirmPassword" class="form-control" required placeholder="******" />
+            <button type="button" class="toggle-password" @click="showConfirmPassword = !showConfirmPassword" title="Mostrar/Ocultar contraseña">
+              {{ showConfirmPassword ? '🔓' : '👁️' }}
+            </button>
+          </div>
         </div>
 
         <div v-if="isLogin" class="forgot-password">
@@ -113,8 +133,11 @@ const {
 const isLogin = ref(true)
 const email = ref('')
 const password = ref('')
+const confirmPassword = ref('')
 const displayName = ref('')
 const phone = ref('')
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
 
 const loading = ref(false)
 const error = ref('')
@@ -141,6 +164,16 @@ const handleEmailAuth = async () => {
     if (isLogin.value) {
       await signInEmail(email.value, password.value)
     } else {
+      if (password.value !== confirmPassword.value) {
+        error.value = 'Las contraseñas no coinciden'
+        loading.value = false
+        return
+      }
+      if (password.value.length < 6) {
+        error.value = 'La contraseña debe tener al menos 6 caracteres'
+        loading.value = false
+        return
+      }
       await registerEmail(email.value, password.value, displayName.value, phone.value)
       infoMessage.value = '¡Registro exitoso! Por favor verifica tu correo electrónico para mayor seguridad.'
     }
@@ -403,6 +436,31 @@ const handleLinkAccount = async () => {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(9, 132, 227, 0.2);
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper .form-control {
+  padding-right: 45px;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--color-text-light);
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
 }
 
 .auth-toggle {
