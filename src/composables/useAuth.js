@@ -46,6 +46,14 @@ export function useAuth() {
     return await authService.sendPasswordReset(email)
   }
 
+  const signInAndLinkGoogle = async (email, password, pendingCredential) => {
+    return await authService.signInAndLinkGoogle(email, password, pendingCredential)
+  }
+
+  const getGoogleCredentialFromError = (error) => {
+    return authService.getGoogleCredentialFromError(error)
+  }
+
   const updateProfile = async (displayName, phone) => {
     if (!currentUser.value) return
     await authService.updateProfileData(currentUser.value.uid, { displayName, phone })
@@ -69,6 +77,8 @@ export function useAuth() {
     isReadOnly,
     initAuth,
     signIn,
+    signInAndLinkGoogle,
+    getGoogleCredentialFromError,
     registerEmail,
     signInEmail,
     resetPassword,

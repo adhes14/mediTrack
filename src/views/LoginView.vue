@@ -11,7 +11,11 @@
         {{ error }}
       </div>
 
-      <form @submit.prevent="handleEmailAuth" class="auth-form">
+      <div v-if="infoMessage" class="info-msg">
+        {{ infoMessage }}
+      </div>
+
+      <form v-if="!needsLinking" @submit.prevent="handleEmailAuth" class="auth-form">
         <div v-if="!isLogin" class="form-group">
           <label>Nombre Completo *</label>
           <input type="text" v-model="displayName" class="form-control" required placeholder="Ej. Juan Pérez" />
@@ -42,6 +46,20 @@
         </button>
       </form>
 
+      <!-- Linking UI -->
+      <div v-else class="linking-container">
+        <p class="linking-text">Ya tienes una cuenta con <strong>{{ email }}</strong>. Ingresa tu contraseña para vincularla con Google.</p>
+        <div class="form-group">
+          <label>Contraseña *</label>
+          <input type="password" v-model="password" class="form-control" required placeholder="******" />
+        </div>
+        <button @click="handleLinkAccount" class="btn btn-primary btn-block" :disabled="loading">
+          <span v-if="loading">Vinculando...</span>
+          <span v-else>Vincular y Continuar</span>
+        </button>
+        <button @click="needsLinking = false; error = '';" class="btn btn-link btn-block">Cancelar</button>
+      </div>
+
       <div class="auth-toggle">
         <a href="#" @click.prevent="isLogin = !isLogin">
           {{ isLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión' }}
@@ -67,7 +85,16 @@ import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 
 const router = useRouter()
-const { signIn, signInEmail, registerEmail, resetPassword, isAuthenticated, isProfileComplete } = useAuth()
+const { 
+  signIn, 
+  signInEmail, 
+  registerEmail, 
+  resetPassword, 
+  isAuthenticated, 
+  isProfileComplete, 
+  signInAndLinkGoogle,
+  getGoogleCredentialFromError
+} = useAuth()
 
 const isLogin = ref(true)
 const email = ref('')
@@ -77,6 +104,9 @@ const phone = ref('')
 
 const loading = ref(false)
 const error = ref('')
+const infoMessage = ref('')
+const needsLinking = ref(false)
+const pendingCredential = ref(null)
 
 // Watch for authentication to automatically navigate
 watch(isAuthenticated, (newVal) => {
@@ -98,12 +128,15 @@ const handleEmailAuth = async () => {
       await signInEmail(email.value, password.value)
     } else {
       await registerEmail(email.value, password.value, displayName.value, phone.value)
+      infoMessage.value = '¡Registro exitoso! Por favor verifica tu correo electrónico para mayor seguridad.'
     }
     // Redirection handled by watch
   } catch (err) {
     console.error('Email Auth error:', err)
     if (err.code === 'auth/email-already-in-use') {
       error.value = 'El correo ya está en uso. Si usaste Google antes, intenta "Recuperar Contraseña".'
+    } else if (err.code === 'auth/invalid-credential') {
+      error.value = 'Credenciales inválidas. Verifica tu correo y contraseña.'
     } else {
       error.value = 'Error de autenticación. Verifica tus credenciales.'
     }
@@ -134,13 +167,54 @@ const handleResetPassword = async () => {
 const handleGoogleLogin = async () => {
   loading.value = true
   error.value = ''
+  infoMessage.value = ''
+  needsLinking.value = false
   
   try {
     await signIn()
     // Redirection handled by watch
   } catch (err) {
     console.error('Google Login error:', err)
-    error.value = 'Error al iniciar sesión con Google. Por favor intenta nuevamente.'
+    if (err.code === 'auth/account-exists-with-different-credential') {
+      const credential = getGoogleCredentialFromError(err)
+      if (credential) {
+        needsLinking.value = true
+        email.value = err.customData.email
+        pendingCredential.value = credential
+        error.value = 'Ya existe una cuenta con este correo. Por favor ingresa tu contraseña para vincularla.'
+      } else {
+        error.value = 'Error al obtener las credenciales de Google para vincular.'
+      }
+    } else {
+      error.value = 'Error al iniciar sesión con Google. Por favor intenta nuevamente.'
+    }
+    loading.value = false
+  }
+}
+
+const handleLinkAccount = async () => {
+  if (!password.value) {
+    error.value = 'Por favor ingresa tu contraseña para vincular la cuenta.'
+    return
+  }
+  
+  loading.value = true
+  error.value = ''
+  
+  try {
+    // Re-attempt Google sign in to get the credential (or use the one from error if possible)
+    // Actually, the easiest way is to let signInAndLinkGoogle handle it if we have the credential
+    // But getting the credential from the error is tricky in v9/v10.
+    
+    // For simplicity, we'll follow the "sign in with password then link" flow.
+    // However, signInAndLinkGoogle needs the pendingCredential.
+    
+    // Let's import GoogleAuthProvider here if needed or use the one in AuthService
+    await signInAndLinkGoogle(email.value, password.value, pendingCredential.value)
+    // Redirection handled by watch
+  } catch (err) {
+    console.error('Linking error:', err)
+    error.value = 'Error al vincular la cuenta. Verifica tu contraseña.'
     loading.value = false
   }
 }
@@ -219,6 +293,38 @@ const handleGoogleLogin = async () => {
   color: var(--color-danger);
   margin-bottom: var(--spacing-md);
   font-size: var(--font-size-sm);
+  background-color: rgba(225, 112, 85, 0.1);
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.info-msg {
+  color: var(--color-primary-dark);
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  background-color: rgba(9, 132, 227, 0.1);
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.linking-container {
+  width: 100%;
+  text-align: left;
+}
+
+.linking-text {
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-light);
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  text-decoration: underline;
+  cursor: pointer;
+  margin-top: 10px;
 }
 
 .auth-form {
