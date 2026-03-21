@@ -1,4 +1,14 @@
-import { signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth'
+import {
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  linkWithCredential,
+  sendEmailVerification,
+  updatePassword,
+  GoogleAuthProvider
+} from 'firebase/auth'
 import { auth, googleProvider } from './firebase'
 import { db } from './firebase'
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
@@ -32,6 +42,11 @@ export class AuthService {
 
       return user
     } catch (error) {
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        // This is a known issue when Email Enumeration Protection is OFF or with certain providers.
+        // We'll throw the error so the UI can handle the linking flow.
+        throw error
+      }
       console.error('Error signing in with Google:', error)
       throw error
     }
@@ -53,6 +68,16 @@ export class AuthService {
         role: 'read_only', // default role
         createdAt: new Date().toISOString()
       })
+
+      // Send email verification to prevent automatic provider overwriting
+      try {
+        await sendEmailVerification(user)
+        console.log('Verification email sent')
+      } catch (verifyError) {
+        console.error('Error sending verification email:', verifyError)
+        // We don't throw here to allow the user to continue, 
+        // but they should verify eventually.
+      }
 
       return user
     } catch (error) {
@@ -112,6 +137,7 @@ export class AuthService {
         callback({
           uid: user.uid,
           email: user.email,
+          emailVerified: user.emailVerified,
           displayName: userData?.displayName || user.displayName,
           phone: userData?.phone || null,
           photoURL: user.photoURL,
@@ -124,6 +150,64 @@ export class AuthService {
   }
 
   /**
+   * Link Google credential with current Email/Password account
+   */
+  async linkGoogleWithEmail() {
+    if (!auth.currentUser) throw new Error('No hay usuario autenticado')
+
+    try {
+      // 1. Re-authenticate or get credential for Google
+      const result = await signInWithPopup(auth, googleProvider)
+      const credential = GoogleAuthProvider.credentialFromResult(result)
+
+      // 2. Link with current user
+      await linkWithCredential(auth.currentUser, credential)
+
+      return auth.currentUser
+    } catch (error) {
+      console.error('Error linking Google account:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Extract Google credential from a conflict error
+   */
+  getGoogleCredentialFromError(error) {
+    if (error.code === 'auth/account-exists-with-different-credential') {
+      return GoogleAuthProvider.credentialFromError(error)
+    }
+    return null
+  }
+
+  /**
+   * Special method to handle linking when Google login fails due to existing email
+   */
+  async signInAndLinkGoogle(email, password, pendingCredential) {
+    try {
+      // 1. Sign in with Email/Password first
+      const result = await signInWithEmailAndPassword(auth, email, password)
+      const user = result.user
+
+      // 2. Check if email is verified BEFORE linking
+      if (!user.emailVerified) {
+        // Sign out immediately to stay in a clean state if not verified
+        await signOut(auth)
+        const error = new Error('Por favor, verifica tu correo electrónico antes de vincular tu cuenta con Google.')
+        error.code = 'auth/email-not-verified'
+        throw error
+      }
+
+      // 3. Link the pending Google credential
+      await linkWithCredential(user, pendingCredential)
+
+      return user
+    } catch (error) {
+      console.error('Error in signInAndLinkGoogle:', error)
+      throw error
+    }
+  }
+  /**
    * Update Profile data
    */
   async updateProfileData(uid, data) {
@@ -134,6 +218,30 @@ export class AuthService {
       console.error('Error updating profile:', error)
       throw error
     }
+  }
+
+  /**
+   * Update the current user's password
+   */
+  async updateUserPassword(newPassword) {
+    if (!auth.currentUser) throw new Error('No hay usuario autenticado')
+    try {
+      await updatePassword(auth.currentUser, newPassword)
+    } catch (error) {
+      console.error('Error updating password:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Reload current user to check for verification updates
+   */
+  async reloadUserData() {
+    if (auth.currentUser) {
+      await auth.currentUser.reload()
+      return auth.currentUser
+    }
+    return null
   }
 }
 

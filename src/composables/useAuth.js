@@ -15,6 +15,7 @@ export function useAuth() {
   const isAssistant = computed(() => userRole.value === 'assistant')
   const isReadOnly = computed(() => userRole.value === 'read_only')
   const isProfileComplete = computed(() => !!(currentUser.value?.displayName && currentUser.value?.phone))
+  const isEmailVerified = computed(() => currentUser.value?.emailVerified || false)
 
   /**
    * Initialize auth state listener
@@ -46,15 +47,40 @@ export function useAuth() {
     return await authService.sendPasswordReset(email)
   }
 
+  const signInAndLinkGoogle = async (email, password, pendingCredential) => {
+    return await authService.signInAndLinkGoogle(email, password, pendingCredential)
+  }
+
+  const getGoogleCredentialFromError = (error) => {
+    return authService.getGoogleCredentialFromError(error)
+  }
+
   const updateProfile = async (displayName, phone) => {
     if (!currentUser.value) return
     await authService.updateProfileData(currentUser.value.uid, { displayName, phone })
     currentUser.value = { ...currentUser.value, displayName, phone }
   }
 
+  const updateUserPassword = async (newPassword) => {
+    await authService.updateUserPassword(newPassword)
+  }
+
   const signOut = async () => {
     await authService.signOutUser()
     currentUser.value = null
+  }
+
+  const refreshCurrentUser = async () => {
+    const user = await authService.reloadUserData()
+    if (user) {
+      // Manually trigger update in reactive state by creating a new shallow copy
+      // This helps if the internal listener hasn't fired yet
+      currentUser.value = {
+        ...currentUser.value,
+        emailVerified: user.emailVerified
+      }
+    }
+    return user
   }
 
   return {
@@ -67,12 +93,17 @@ export function useAuth() {
     isManager,
     isAssistant,
     isReadOnly,
+    isEmailVerified,
     initAuth,
     signIn,
+    signInAndLinkGoogle,
+    getGoogleCredentialFromError,
     registerEmail,
     signInEmail,
     resetPassword,
     updateProfile,
+    updateUserPassword,
+    refreshCurrentUser,
     signOut
   }
 }

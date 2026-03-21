@@ -8,6 +8,7 @@ import LoginView from '../views/LoginView.vue'
 import CompleteProfileView from '../views/CompleteProfileView.vue'
 import UsersView from '../views/UsersView.vue'
 import BatchDeliveriesView from '../views/BatchDeliveriesView.vue'
+import ProfileView from '../views/ProfileView.vue'
 import { useAuth } from '../composables/useAuth'
 
 const routes = [
@@ -71,6 +72,12 @@ const routes = [
         name: 'complete-profile',
         component: CompleteProfileView,
         meta: { requiresAuth: true }
+    },
+    {
+        path: '/profile',
+        name: 'profile',
+        component: ProfileView,
+        meta: { requiresAuth: true }
     }
 ]
 
@@ -80,10 +87,13 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-    const { isAuthenticated, userRole, isProfileComplete } = useAuth()
+    const { isAuthenticated, userRole, isProfileComplete, isEmailVerified } = useAuth()
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth !== false)
 
     if (requiresAuth && !isAuthenticated.value) {
+        next('/login')
+    } else if (requiresAuth && !isEmailVerified.value) {
+        // Redirigir a login si no está verificado para que vea el aviso
         next('/login')
     } else if (to.path === '/login' && isAuthenticated.value) {
         if (!isProfileComplete.value) {

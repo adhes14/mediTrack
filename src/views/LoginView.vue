@@ -11,7 +11,41 @@
         {{ error }}
       </div>
 
-      <form @submit.prevent="handleEmailAuth" class="auth-form">
+      <div v-if="infoMessage" class="info-msg">
+        {{ infoMessage }}
+      </div>
+
+      <!-- 1. State: Logged in but NOT verified -->
+      <div v-if="isAuthenticated && !isEmailVerified" class="verify-msg">
+        <h3>Verifica tu correo</h3>
+        <p>Tu cuenta aún no ha sido verificada. Revisa tu bandeja de entrada o haz clic en el botón de abajo si ya verificaste.</p>
+        <button @click="checkVerificationStatus" class="btn btn-primary" :disabled="loading">
+          Ya verifiqué mi correo
+        </button>
+        <button @click="signOut" class="btn btn-link">Cerrar sesión</button>
+      </div>
+
+      <!-- 2. State: Account Linking Flow (Only for verified or new links) -->
+      <div v-else-if="needsLinking" class="linking-container">
+        <p class="linking-text">Ya tienes una cuenta con <strong>{{ email }}</strong>. Ingresa tu contraseña para vincularla con Google.</p>
+        <div class="form-group">
+          <label>Contraseña *</label>
+          <div class="password-input-wrapper">
+            <input :type="showPassword ? 'text' : 'password'" v-model="password" class="form-control" required placeholder="******" />
+            <button type="button" class="toggle-password" @click="showPassword = !showPassword" title="Mostrar/Ocultar contraseña">
+              {{ showPassword ? '🔓' : '👁️' }}
+            </button>
+          </div>
+        </div>
+        <button @click="handleLinkAccount" class="btn btn-primary btn-block" :disabled="loading">
+          <span v-if="loading">Vinculando...</span>
+          <span v-else>Vincular y Continuar</span>
+        </button>
+        <button @click="needsLinking = false; error = '';" class="btn btn-link btn-block">Cancelar</button>
+      </div>
+
+      <!-- 3. State: Normal Login / Register -->
+      <form v-else-if="!isAuthenticated" @submit.prevent="handleEmailAuth" class="auth-form">
         <div v-if="!isLogin" class="form-group">
           <label>Nombre Completo *</label>
           <input type="text" v-model="displayName" class="form-control" required placeholder="Ej. Juan Pérez" />
@@ -29,7 +63,22 @@
 
         <div class="form-group">
           <label>Contraseña *</label>
-          <input type="password" v-model="password" class="form-control" required placeholder="******" />
+          <div class="password-input-wrapper">
+            <input :type="showPassword ? 'text' : 'password'" v-model="password" class="form-control" required placeholder="******" />
+            <button type="button" class="toggle-password" @click="showPassword = !showPassword" title="Mostrar/Ocultar contraseña">
+              {{ showPassword ? '🔓' : '👁️' }}
+            </button>
+          </div>
+        </div>
+
+        <div v-if="!isLogin" class="form-group">
+          <label>Confirmar Contraseña *</label>
+          <div class="password-input-wrapper">
+            <input :type="showConfirmPassword ? 'text' : 'password'" v-model="confirmPassword" class="form-control" required placeholder="******" />
+            <button type="button" class="toggle-password" @click="showConfirmPassword = !showConfirmPassword" title="Mostrar/Ocultar contraseña">
+              {{ showConfirmPassword ? '🔓' : '👁️' }}
+            </button>
+          </div>
         </div>
 
         <div v-if="isLogin" class="forgot-password">
@@ -42,15 +91,15 @@
         </button>
       </form>
 
-      <div class="auth-toggle">
+      <div v-if="!isAuthenticated" class="auth-toggle">
         <a href="#" @click.prevent="isLogin = !isLogin">
           {{ isLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión' }}
         </a>
       </div>
 
-      <div class="divider"><span>O</span></div>
+      <div v-if="!isAuthenticated" class="divider"><span>O</span></div>
       
-      <button @click="handleGoogleLogin" class="btn btn-block google-btn" :disabled="loading">
+      <button v-if="!isAuthenticated" @click="handleGoogleLogin" class="btn btn-block google-btn" :disabled="loading">
         <span v-if="loading">Iniciando sesión...</span>
         <span v-else>
           <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo" class="google-icon" />
@@ -67,20 +116,38 @@ import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 
 const router = useRouter()
-const { signIn, signInEmail, registerEmail, resetPassword, isAuthenticated, isProfileComplete } = useAuth()
+const { 
+  signIn, 
+  signInEmail, 
+  registerEmail, 
+  resetPassword, 
+  isAuthenticated, 
+  isProfileComplete, 
+  isEmailVerified,
+  signInAndLinkGoogle,
+  getGoogleCredentialFromError,
+  refreshCurrentUser,
+  signOut
+} = useAuth()
 
 const isLogin = ref(true)
 const email = ref('')
 const password = ref('')
+const confirmPassword = ref('')
 const displayName = ref('')
 const phone = ref('')
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
 
 const loading = ref(false)
 const error = ref('')
+const infoMessage = ref('')
+const needsLinking = ref(false)
+const pendingCredential = ref(null)
 
 // Watch for authentication to automatically navigate
-watch(isAuthenticated, (newVal) => {
-  if (newVal) {
+watch([isAuthenticated, isEmailVerified], ([newAuth, newVerify]) => {
+  if (newAuth && newVerify) {
     if (!isProfileComplete.value) {
       router.push('/complete-profile')
     } else {
@@ -97,16 +164,46 @@ const handleEmailAuth = async () => {
     if (isLogin.value) {
       await signInEmail(email.value, password.value)
     } else {
+      if (password.value !== confirmPassword.value) {
+        error.value = 'Las contraseñas no coinciden'
+        loading.value = false
+        return
+      }
+      if (password.value.length < 6) {
+        error.value = 'La contraseña debe tener al menos 6 caracteres'
+        loading.value = false
+        return
+      }
       await registerEmail(email.value, password.value, displayName.value, phone.value)
+      infoMessage.value = '¡Registro exitoso! Por favor verifica tu correo electrónico para mayor seguridad.'
     }
     // Redirection handled by watch
   } catch (err) {
     console.error('Email Auth error:', err)
     if (err.code === 'auth/email-already-in-use') {
       error.value = 'El correo ya está en uso. Si usaste Google antes, intenta "Recuperar Contraseña".'
+    } else if (err.code === 'auth/invalid-credential') {
+      error.value = 'Credenciales inválidas. Verifica tu correo y contraseña.'
     } else {
       error.value = 'Error de autenticación. Verifica tus credenciales.'
     }
+    loading.value = false
+  }
+}
+
+const checkVerificationStatus = async () => {
+  loading.value = true
+  try {
+    const user = await refreshCurrentUser()
+    if (user?.emailVerified) {
+      // Refresh logic already triggers the watch if values change
+      infoMessage.value = '¡Correo verificado con éxito!'
+    } else {
+      error.value = 'El correo aún no ha sido verificado. Por favor revisa tu bandeja de entrada.'
+    }
+  } catch (err) {
+    console.error('Check verification error:', err)
+  } finally {
     loading.value = false
   }
 }
@@ -134,13 +231,52 @@ const handleResetPassword = async () => {
 const handleGoogleLogin = async () => {
   loading.value = true
   error.value = ''
+  infoMessage.value = ''
+  needsLinking.value = false
   
   try {
     await signIn()
     // Redirection handled by watch
   } catch (err) {
     console.error('Google Login error:', err)
-    error.value = 'Error al iniciar sesión con Google. Por favor intenta nuevamente.'
+    if (err.code === 'auth/account-exists-with-different-credential') {
+      const credential = getGoogleCredentialFromError(err)
+      if (credential) {
+        needsLinking.value = true
+        email.value = err.customData.email
+        pendingCredential.value = credential
+        error.value = 'Ya existe una cuenta con este correo. Por favor ingresa tu contraseña para vincularla.'
+      } else {
+        error.value = 'Error al obtener las credenciales de Google para vincular.'
+      }
+    } else {
+      error.value = 'Error al iniciar sesión con Google. Por favor intenta nuevamente.'
+    }
+    loading.value = false
+  }
+}
+
+const handleLinkAccount = async () => {
+  if (!password.value) {
+    error.value = 'Por favor ingresa tu contraseña para vincular la cuenta.'
+    return
+  }
+  
+  loading.value = true
+  error.value = ''
+  
+  try {
+    await signInAndLinkGoogle(email.value, password.value, pendingCredential.value)
+    // Success - Redirection handled by watch
+  } catch (err) {
+    console.error('Linking error:', err)
+    if (err.code === 'auth/email-not-verified') {
+      error.value = err.message
+      needsLinking.value = false
+      pendingCredential.value = null
+    } else {
+      error.value = 'Error al vincular la cuenta. Verifica tu contraseña.'
+    }
     loading.value = false
   }
 }
@@ -219,6 +355,57 @@ const handleGoogleLogin = async () => {
   color: var(--color-danger);
   margin-bottom: var(--spacing-md);
   font-size: var(--font-size-sm);
+  background-color: rgba(225, 112, 85, 0.1);
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.verify-msg {
+  border: 1px solid var(--color-primary);
+  background-color: rgba(9, 132, 227, 0.05);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.verify-msg h3 {
+  color: var(--color-primary-dark);
+  margin-bottom: var(--spacing-sm);
+}
+
+.verify-msg p {
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-md);
+  color: var(--color-text-light);
+}
+
+.info-msg {
+  color: var(--color-primary-dark);
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  background-color: rgba(9, 132, 227, 0.1);
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.linking-container {
+  width: 100%;
+  text-align: left;
+}
+
+.linking-text {
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-light);
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  text-decoration: underline;
+  cursor: pointer;
+  margin-top: 10px;
 }
 
 .auth-form {
@@ -249,6 +436,31 @@ const handleGoogleLogin = async () => {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(9, 132, 227, 0.2);
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper .form-control {
+  padding-right: 45px;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--color-text-light);
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
 }
 
 .auth-toggle {
