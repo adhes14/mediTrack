@@ -124,7 +124,7 @@ const handleSave = async (formData) => {
 <style scoped>
 .fab {
   position: fixed;
-  bottom: calc(var(--nav-height) + var(--spacing-md));
+  bottom: var(--spacing-lg);
   right: var(--spacing-md);
   width: 56px;
   height: 56px;
