@@ -4,13 +4,11 @@
     <main class="main-content" :class="{ 'with-topbar': isAuthenticated }">
       <router-view></router-view>
     </main>
-    <NavBar v-if="isAuthenticated" />
     <CustomDialog />
   </div>
 </template>
 
 <script setup>
-import NavBar from './components/NavBar.vue'
 import TopBar from './components/TopBar.vue'
 import CustomDialog from './components/CustomDialog.vue'
 import { useAuth } from './composables/useAuth'
@@ -25,7 +23,7 @@ const { isAuthenticated } = useAuth()
 }
 
 .main-content {
-  padding-bottom: var(--nav-height); /* Ensure content isn't hidden behind nav */
+  padding-bottom: var(--spacing-md);
 }
 
 .main-content.with-topbar {
